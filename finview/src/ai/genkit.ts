@@ -1,6 +1,7 @@
-import dotenv from "dotenv";
+import {genkit} from 'genkit';
+import {googleAI} from '@genkit-ai/googleai';
 
-dotenv.config();
-
-
-import '@/ai/flows/generate-savings-tips.ts';
+export const ai = genkit({
+  plugins: [googleAI()],
+  model: 'googleai/gemini-2.0-flash',
+});
