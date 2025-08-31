@@ -1,11 +1,8 @@
 {
-  "/favicon.ico/route": "app/favicon.ico/route.js",
-  "/page": "app/page.js",
+  "/dashboard/recurring/page": "app/dashboard/recurring/page.js",
   "/dashboard/eco/page": "app/dashboard/eco/page.js",
-  "/dashboard/settings/page": "app/dashboard/settings/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/dashboard/goals/page": "app/dashboard/goals/page.js",
-  "/dashboard/investments/page": "app/dashboard/investments/page.js",
   "/dashboard/budgets/page": "app/dashboard/budgets/page.js",
-  "/dashboard/recurring/page": "app/dashboard/recurring/page.js"
+  "/dashboard/settings/page": "app/dashboard/settings/page.js",
+  "/dashboard/investments/page": "app/dashboard/investments/page.js",
+  "/dashboard/page": "app/dashboard/page.js"
 }
