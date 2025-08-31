@@ -21,15 +21,30 @@
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/page.js"
     ],
+    "/dashboard/eco/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/eco/page.js"
+    ],
+    "/dashboard/goals/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/goals/page.js"
+    ],
     "/dashboard/settings/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/settings/page.js"
     ],
-    "/dashboard/transactions/page": [
+    "/dashboard/recurring/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/transactions/page.js"
+      "static/chunks/app/dashboard/recurring/page.js"
+    ],
+    "/dashboard/investments/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/investments/page.js"
     ],
     "/dashboard/budgets/page": [
       "static/chunks/webpack.js",

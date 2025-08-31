@@ -28,11 +28,17 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useCurrency } from "@/hooks/use-currency";
 
 const profileSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email(),
   photoURL: z.string().url().optional().or(z.literal('')),
+});
+
+const appearanceSchema = z.object({
+  currency: z.string(),
 });
 
 const notificationsSchema = z.object({
@@ -46,6 +52,7 @@ const deleteSchema = z.object({
 
 export default function SettingsPage() {
   const { user, loading, userData, updateUserData } = useAuth();
+  const { currency, setCurrency } = useCurrency();
   const { toast } = useToast();
   const { setTheme, theme } = useTheme();
   const [isSaving, setIsSaving] = React.useState(false);
@@ -55,6 +62,11 @@ export default function SettingsPage() {
   const profileForm = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
     defaultValues: { name: "", email: "", photoURL: "" },
+  });
+
+  const appearanceForm = useForm<z.infer<typeof appearanceSchema>>({
+    resolver: zodResolver(appearanceSchema),
+    defaultValues: { currency: "USD" },
   });
 
   const notificationsForm = useForm<z.infer<typeof notificationsSchema>>({
@@ -81,8 +93,11 @@ export default function SettingsPage() {
         weeklySummary: userData.notifications?.weeklySummary || false,
         budgetAlerts: userData.notifications?.budgetAlerts !== false, // default to true
       });
+      appearanceForm.reset({
+        currency: userData.currency || "USD",
+      });
     }
-  }, [user, userData, profileForm, notificationsForm]);
+  }, [user, userData, profileForm, notificationsForm, appearanceForm]);
 
   async function handleProfileUpdate(values: z.infer<typeof profileSchema>) {
     setIsSaving(true);
@@ -95,6 +110,20 @@ export default function SettingsPage() {
       setIsSaving(false);
     }
   }
+  
+  async function handleAppearanceUpdate(values: z.infer<typeof appearanceSchema>) {
+    setIsSaving(true);
+    try {
+      await updateUserData({ currency: values.currency });
+      setCurrency(values.currency);
+      toast({ title: "Success", description: "Appearance settings updated." });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to save settings." });
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
 
   async function handleNotificationsUpdate(values: z.infer<typeof notificationsSchema>) {
     setIsSaving(true);
@@ -159,7 +188,7 @@ export default function SettingsPage() {
           <Form {...profileForm}>
             <form onSubmit={profileForm.handleSubmit(handleProfileUpdate)}>
               <CardHeader>
-                <CardTitle>Profile</CardTitle>
+                <CardTitle className="text-lg">Profile</CardTitle>
                 <CardDescription>Update your personal information.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -220,7 +249,7 @@ export default function SettingsPage() {
       
       <Card>
         <CardHeader>
-          <CardTitle>Password</CardTitle>
+          <CardTitle className="text-lg">Password</CardTitle>
           <CardDescription>Change your password by sending a reset link to your email.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -229,12 +258,59 @@ export default function SettingsPage() {
             </Button>
         </CardContent>
       </Card>
+
+      <Card>
+          <Form {...appearanceForm}>
+              <form onSubmit={appearanceForm.handleSubmit(handleAppearanceUpdate)}>
+                <CardHeader>
+                  <CardTitle className="text-lg">Appearance</CardTitle>
+                  <CardDescription>Customize the look and feel of the application.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                        <Button variant="outline" size="icon" onClick={() => setTheme('light')}><Sun /></Button>
+                        <Button variant="outline" size="icon" onClick={() => setTheme('dark')}><Moon /></Button>
+                        <span className="text-sm text-muted-foreground">Current theme: {theme}</span>
+                    </div>
+                    <FormField
+                      control={appearanceForm.control}
+                      name="currency"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Currency</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Select currency" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="USD">USD ($)</SelectItem>
+                              <SelectItem value="EUR">EUR (€)</SelectItem>
+                              <SelectItem value="JPY">JPY (¥)</SelectItem>
+                              <SelectItem value="GBP">GBP (£)</SelectItem>
+                              <SelectItem value="INR">INR (₹)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                </CardContent>
+                <CardFooter>
+                  <Button type="submit" disabled={isSaving}>
+                      {isSaving ? "Saving..." : "Save Preferences"}
+                  </Button>
+                </CardFooter>
+              </form>
+            </Form>
+      </Card>
       
       <Card>
           <Form {...notificationsForm}>
               <form onSubmit={notificationsForm.handleSubmit(handleNotificationsUpdate)}>
                 <CardHeader>
-                  <CardTitle>Notifications</CardTitle>
+                  <CardTitle className="text-lg">Notifications</CardTitle>
                   <CardDescription>Manage your notification preferences.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -278,38 +354,18 @@ export default function SettingsPage() {
             </Form>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Appearance</CardTitle>
-          <CardDescription>Customize the look and feel of the application.</CardDescription>
-        </CardHeader>
-        <CardContent>
-           <div className="flex items-center space-x-2">
-              <Button variant="outline" size="icon" onClick={() => setTheme('light')}>
-                <Sun className="h-[1.2rem] w-[1.2rem]" />
-              </Button>
-               <Button variant="outline" size="icon" onClick={() => setTheme('dark')}>
-                <Moon className="h-[1.2rem] w-[1.2rem]" />
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                  Current theme: {theme}
-              </span>
-            </div>
-        </CardContent>
-      </Card>
-
       <Separator />
 
       <Card className="border-destructive">
         <CardHeader>
-          <CardTitle className="text-destructive">Delete Account</CardTitle>
+          <CardTitle className="text-lg text-destructive">Delete Account</CardTitle>
           <CardDescription>Permanently delete your account and all associated data. This action cannot be undone.</CardDescription>
         </CardHeader>
         <CardContent>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive">
-                  <Trash2 className="mr-2 h-4 w-4" />
+                  <Trash2 />
                   Delete My Account
                 </Button>
               </AlertDialogTrigger>

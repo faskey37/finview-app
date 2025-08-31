@@ -1,3 +1,4 @@
+
 export type Transaction = {
   id: string;
   date: string;
@@ -40,8 +41,55 @@ export type UserData = {
     uid: string;
     email: string;
     displayName: string;
+    currency?: string;
     notifications?: {
         weeklySummary?: boolean;
         budgetAlerts?: boolean;
     }
+}
+
+export type Investment = {
+  id: string;
+  name: string;
+  type: string;
+  quantity: number;
+  purchasePrice: number;
+  currentValue: number;
+  purchaseDate: string;
+  userId?: string;
+};
+
+export type Goal = {
+    id: string;
+    name: string;
+    targetAmount: number;
+    currentAmount: number;
+    deadline: string;
+    userId?: string;
+}
+
+export type RecurringTransaction = {
+    id: string;
+    description: string;
+    amount: number;
+    type: 'income' | 'expense';
+    category: string;
+    frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
+    startDate: string;
+    userId?: string;
+}
+
+export type NewsArticle = {
+    title: string;
+    description: string;
+    url: string;
+    source: {
+        name: string;
+    };
+    publishedAt: string;
+}
+
+export type Footprint = {
+    category: string;
+    co2: number;
 }

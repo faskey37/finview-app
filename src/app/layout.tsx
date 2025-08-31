@@ -4,6 +4,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "@/hooks/use-auth";
 import { ThemeProvider } from "@/components/theme-provider";
+import { CurrencyProvider } from "@/hooks/use-currency";
 import { Inter } from 'next/font/google'
 
 const inter = Inter({
@@ -13,7 +14,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'FinView',
+  title: 'EcoVest',
   description: 'Your personal finance dashboard to track expenses, investments, and get AI-powered savings tips.',
 };
 
@@ -37,8 +38,10 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <AuthProvider>
+              <CurrencyProvider>
                 {children}
                 <Toaster />
+              </CurrencyProvider>
             </AuthProvider>
         </ThemeProvider>
       </body>

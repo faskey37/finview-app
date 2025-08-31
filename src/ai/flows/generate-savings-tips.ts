@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -9,6 +10,7 @@
  */
 
 import {ai} from '@/ai/genkit';
+import { googleAI } from '@genkit-ai/googleai';
 import {z} from 'genkit';
 
 const GenerateSavingsTipsInputSchema = z.object({
@@ -37,6 +39,7 @@ const prompt = ai.definePrompt({
   name: 'generateSavingsTipsPrompt',
   input: {schema: GenerateSavingsTipsInputSchema},
   output: {schema: GenerateSavingsTipsOutputSchema},
+
   prompt: `You are a personal finance advisor. Analyze the following spending data and provide actionable savings tips.
 
 Spending Data:

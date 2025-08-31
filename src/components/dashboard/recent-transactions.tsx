@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -62,6 +63,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { Transaction } from "@/lib/types"
 import { addTransaction, deleteTransaction } from "@/services/transactions"
 import { useToast } from "@/hooks/use-toast"
+import { useCurrency } from "@/hooks/use-currency"
 
 interface RecentTransactionsProps {
   transactions: Transaction[]
@@ -79,6 +81,7 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
   const [addDialogOpen, setAddDialogOpen] = React.useState(false)
   const [isDeleting, setIsDeleting] = React.useState(false)
   const { toast } = useToast()
+  const { formatCurrency } = useCurrency();
 
   const form = useForm<z.infer<typeof transactionSchema>>({
     resolver: zodResolver(transactionSchema),
@@ -94,7 +97,7 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
     try {
       await addTransaction({
         ...values,
-      
+        id: '', // Firestore will generate ID
         date: new Date().toLocaleDateString('en-CA')
       });
       form.reset();
@@ -119,18 +122,11 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
     }
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount)
-  }
-
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>Recent Transactions</CardTitle>
+          <CardTitle className="text-lg">Recent Transactions</CardTitle>
           <CardDescription>
             A list of your recent income and expenses.
           </CardDescription>

@@ -16,14 +16,8 @@ import {
 } from "firebase/auth";
 import { auth, db } from '@/lib/firebase';
 import { doc, setDoc, getDoc, deleteDoc, collection, getDocs, writeBatch } from 'firebase/firestore';
+import type { UserData } from '@/lib/types';
 
-interface UserData {
-    notifications?: {
-        weeklySummary?: boolean;
-        budgetAlerts?: boolean;
-    }
-    [key: string]: any;
-}
 
 interface AuthContextType {
     user: User | null;
@@ -49,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     setUserData(docSnap.data() as UserData);
                 } else {
                     // Create user doc if it doesn't exist for some reason
-                     await setDoc(userDocRef, { uid: user.uid, email: user.email, displayName: user.displayName }, { merge: true });
+                     await setDoc(userDocRef, { uid: user.uid, email: user.email, displayName: user.displayName, currency: "USD" }, { merge: true });
                 }
             } else {
                 setUserData(null);
@@ -87,6 +81,7 @@ export const signUp = async (email: string, password: string, displayName: strin
         uid: user.uid,
         email: user.email,
         displayName: user.displayName,
+        currency: "USD",
         notifications: {
             weeklySummary: false,
             budgetAlerts: true
@@ -129,7 +124,7 @@ export const deleteUserAccount = async (): Promise<void> => {
         const userDocRef = doc(db, 'users', user.uid);
         
         // Delete subcollections (transactions, accounts, budgets)
-        const collectionsToDelete = ['transactions', 'accounts', 'budgets'];
+        const collectionsToDelete = ['transactions', 'accounts', 'budgets', 'goals', 'investments', 'recurring'];
         for (const subcollection of collectionsToDelete) {
             const subcollectionRef = collection(db, 'users', user.uid, subcollection);
             const querySnapshot = await getDocs(subcollectionRef);
