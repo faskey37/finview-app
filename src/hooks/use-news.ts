@@ -1,39 +1,27 @@
 
 import { useState, useEffect } from 'react';
-import { getInvestments } from '@/services/investments';
-import type { Investment } from '@/lib/types';
-import { useAuth } from './use-auth';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { getFinancialNews } from '@/services/news';
+import type { NewsArticle } from '@/lib/types';
 
-export function useInvestments() {
-  const [investments, setInvestments] = useState<Investment[]>([]);
+export function useNews() {
+  const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const { user } = useAuth();
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setLoading(true);
+    async function fetchNews() {
         try {
-          const unsubscribeSnap = getInvestments((newInvestments) => {
-            setInvestments(newInvestments);
-            setLoading(false);
-          });
-          return () => unsubscribeSnap();
+            setLoading(true);
+            const newsArticles = await getFinancialNews();
+            setArticles(newsArticles);
         } catch (e) {
-          setError(e as Error);
-          setLoading(false);
+            setError(e as Error);
+        } finally {
+            setLoading(false);
         }
-      } else {
-        setInvestments([]);
-        setLoading(false);
-      }
-    });
+    }
+    fetchNews();
+  }, []);
 
-    return () => unsubscribeAuth();
-  }, [user]);
-
-  return { investments, loading, error };
+  return { articles, loading, error };
 }

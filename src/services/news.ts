@@ -1,4 +1,3 @@
-
 'use server';
 
 import type { NewsArticle } from '@/lib/types';
