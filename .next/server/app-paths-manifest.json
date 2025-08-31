@@ -1,9 +1,7 @@
 {
-  "/icon.png/route": "app/icon.png/route.js",
   "/page": "app/page.js",
   "/dashboard/investments/page": "app/dashboard/investments/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
   "/dashboard/recurring/page": "app/dashboard/recurring/page.js",
-  "/dashboard/transactions/page": "app/dashboard/transactions/page.js",
-  "/dashboard/budgets/page": "app/dashboard/budgets/page.js"
+  "/dashboard/budgets/page": "app/dashboard/budgets/page.js",
+  "/dashboard/page": "app/dashboard/page.js"
 }
