@@ -33,7 +33,7 @@ export default function Home() {
       <div className="flex flex-col items-center space-y-4 text-center">
         <Logo />
         <h1 className="text-2xl font-semibold tracking-tight">
-          Welcome to FinView
+          Welcome to EcoVest
         </h1>
         <p className="text-sm text-muted-foreground max-w-sm">
           {showLogin 

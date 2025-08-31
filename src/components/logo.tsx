@@ -1,11 +1,28 @@
-import { Landmark } from "lucide-react";
-import { cn } from "@/lib/utils";
 
-export default function Logo({ className }: { className?: string }) {
+import { cn } from "@/lib/utils";
+import Image from "next/image";
+
+interface LogoProps {
+    className?: string;
+    isCollapsed?: boolean;
+}
+
+export default function Logo({ className, isCollapsed = false }: LogoProps) {
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <Landmark className="h-6 w-6 text-primary" />
-      <span className="text-xl font-semibold text-primary">FinView</span>
+      <Image
+        src="https://github.com/faskey37/My-Portfolio/blob/main/WhatsApp_Image_2025-08-31_at_10.41.40_cab56ce6-removebg-preview.png?raw=true"
+        alt="EcoVest Logo"
+        width={36}
+        height={36}
+        className="h-9 w-9 object-contain"
+      />
+      <span className={cn(
+          "text-xl font-semibold text-primary", 
+          isCollapsed && "sr-only"
+        )}>
+          EcoVest
+      </span>
     </div>
   );
 }

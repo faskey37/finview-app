@@ -1,8 +1,7 @@
 {
-  "/dashboard/recurring/page": "app/dashboard/recurring/page.js",
-  "/dashboard/eco/page": "app/dashboard/eco/page.js",
   "/dashboard/budgets/page": "app/dashboard/budgets/page.js",
-  "/dashboard/settings/page": "app/dashboard/settings/page.js",
+  "/dashboard/recurring/page": "app/dashboard/recurring/page.js",
   "/dashboard/investments/page": "app/dashboard/investments/page.js",
-  "/dashboard/page": "app/dashboard/page.js"
+  "/dashboard/page": "app/dashboard/page.js",
+  "/page": "app/page.js"
 }
