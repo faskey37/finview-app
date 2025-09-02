@@ -80,6 +80,11 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/subscriptions/page.js"
+    ],
+    "/dashboard/bill-negotiation/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/bill-negotiation/page.js"
     ]
   }
 }
