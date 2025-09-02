@@ -13,6 +13,10 @@ import { format } from "date-fns"
 export default function NewsPage() {
   const { articles, loading, error } = useNews()
 
+  // Filter out any articles that are null/undefined or do not have a valid, non-empty url.
+  // This is the most robust way to prevent rendering issues from malformed API data.
+  const validArticles = articles.filter(article => article && typeof article.url === 'string' && article.url.trim() !== '');
+
   return (
     <div className="flex flex-col gap-8">
       <div className="flex items-center justify-between">
@@ -24,16 +28,17 @@ export default function NewsPage() {
           <Skeleton className="h-80" />
           <Skeleton className="h-80" />
           <Skeleton className="h-80" />
+          <Skeleton className="h-80" />
         </div>
       ) : error ? (
          <Card className="col-span-full">
             <CardHeader><CardTitle>Error</CardTitle></CardHeader>
             <CardContent><p>Could not load news. Please check if the NEWS_API_KEY is configured correctly.</p></CardContent>
         </Card>
-      ) : articles.length > 0 ? (
+      ) : validArticles.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {articles.map((article, index) => (
-            <Card key={index} className="flex flex-col">
+          {validArticles.map((article, index) => (
+            <Card key={`${article.url}-${index}`} className="flex flex-col">
               <CardHeader>
                 <CardTitle className="text-lg leading-tight">{article.title}</CardTitle>
               </CardHeader>
@@ -42,8 +47,8 @@ export default function NewsPage() {
               </CardContent>
               <CardFooter className="flex justify-between items-center">
                  <div className="text-xs text-muted-foreground">
-                    <p>{article.source.name}</p>
-                    <p>{format(new Date(article.publishedAt), "PPP")}</p>
+                    {article.source?.name && <p>{article.source.name}</p>}
+                    {article.publishedAt && <p>{format(new Date(article.publishedAt), "PPP")}</p>}
                 </div>
                 <Button variant="outline" size="sm" asChild>
                   <a href={article.url} target="_blank" rel="noopener noreferrer">

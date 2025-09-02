@@ -71,10 +71,10 @@ export default function RecurringPage() {
   return (
     <div className="flex flex-col gap-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Recurring Transactions</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Manual Recurring Transactions</h1>
         <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button><PlusCircle />Add Recurring</Button>
+            <Button><PlusCircle />Add Manual Entry</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>Add Recurring Transaction</DialogTitle><DialogDescription>Set up an automatic, recurring income or expense.</DialogDescription></DialogHeader>
@@ -86,7 +86,7 @@ export default function RecurringPage() {
                     <FormItem><FormLabel>Type</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="expense">Expense</SelectItem><SelectItem value="income">Income</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="category" render={({ field }) => (
-                    <FormItem><FormLabel>Category</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger></FormControl><SelectContent><SelectItem value="food">Food</SelectItem><SelectItem value="transport">Transport</SelectItem><SelectItem value="shopping">Shopping</SelectItem><SelectItem value="housing">Housing</SelectItem><SelectItem value="entertainment">Entertainment</SelectItem><SelectItem value="health">Health</SelectItem><SelectItem value="salary">Salary</SelectItem><SelectItem value="freelance">Freelance</SelectItem><SelectItem value="other">Other</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Category</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Food">Food</SelectItem><SelectItem value="Transport">Transport</SelectItem><SelectItem value="Shopping">Shopping</SelectItem><SelectItem value="Housing">Housing</SelectItem><SelectItem value="Entertainment">Entertainment</SelectItem><SelectItem value="Health">Health</SelectItem><SelectItem value="Salary">Salary</SelectItem><SelectItem value="Freelance">Freelance</SelectItem><SelectItem value="Other">Other</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="frequency" render={({ field }) => (
                     <FormItem><FormLabel>Frequency</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="daily">Daily</SelectItem><SelectItem value="weekly">Weekly</SelectItem><SelectItem value="monthly">Monthly</SelectItem><SelectItem value="yearly">Yearly</SelectItem></SelectContent></Select><FormMessage /></FormItem>
@@ -103,8 +103,8 @@ export default function RecurringPage() {
 
       <Card>
         <CardHeader>
-            <CardTitle className="text-lg">Your Recurring Transactions</CardTitle>
-            <CardDescription>These transactions are logged automatically based on their schedule.</CardDescription>
+            <CardTitle className="text-lg">Your Manually Tracked Items</CardTitle>
+            <CardDescription>These are recurring transactions you have manually added. For AI-powered subscription tracking, see the "Subscriptions" page.</CardDescription>
         </CardHeader>
         <CardContent>
             {loading ? (

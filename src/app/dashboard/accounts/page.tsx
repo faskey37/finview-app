@@ -1,3 +1,4 @@
+
 "use client"
 import * as React from "react"
 import { useForm } from "react-hook-form"
@@ -41,6 +42,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useCurrency } from "@/hooks/use-currency"
 
 const accountSchema = z.object({
   type: z.string().min(1, "Account type is required"),
@@ -54,12 +56,9 @@ const iconMap: { [key: string]: React.ReactElement } = {
   "Credit Card": <CreditCard className="h-6 w-6 text-muted-foreground" />,
 };
 
-const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-};
-
 export default function AccountsPage() {
   const { accounts, loading } = useAccounts()
+  const { formatCurrency } = useCurrency();
   const [addDialogOpen, setAddDialogOpen] = React.useState(false)
   const [isDeleting, setIsDeleting] = React.useState(false)
   const { toast } = useToast()
@@ -104,7 +103,7 @@ export default function AccountsPage() {
         <h1 className="text-3xl font-bold tracking-tight">Accounts</h1>
         <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button size="sm" className="gap-1">
+            <Button>
               <PlusCircle />
               Add Account
             </Button>
@@ -201,14 +200,14 @@ export default function AccountsPage() {
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button aria-haspopup="true" size="icon" variant="ghost">
-                          <MoreHorizontal className="h-4 w-4" />
+                          <MoreHorizontal />
                           <span className="sr-only">Toggle menu</span>
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                          <AlertDialogTrigger asChild>
                            <DropdownMenuItem className="text-destructive">
-                            <Trash2 className="mr-2 h-4 w-4" />
+                            <Trash2 />
                             Delete
                           </DropdownMenuItem>
                         </AlertDialogTrigger>

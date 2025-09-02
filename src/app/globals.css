@@ -4,58 +4,59 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 0 0% 98%;
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
+    --primary: 182 52% 42%;
     --primary-foreground: 0 0% 98%;
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
     --muted: 240 4.8% 95.9%;
     --muted-foreground: 240 3.8% 46.1%;
-    --accent: 100 65% 55%; /* Bright Green */
-    --accent-foreground: 240 5.9% 10%;
+    --accent: 182 40% 95%;
+    --accent-foreground: 182 50% 30%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
-    --chart-1: 240 5.9% 10%;
-    --chart-2: 100 65% 55%;
-    --chart-3: 240 5% 50%;
-    --chart-4: 100 65% 75%;
-    --chart-5: 240 5% 70%;
+    --ring: 182 52% 42%;
+    --chart-1: 182 52% 42%;
+    --chart-2: 207 65% 34%;
+    --chart-3: 182 50% 55%;
+    --chart-4: 207 50% 45%;
+    --chart-5: 182 45% 65%;
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 240 10% 3.9%;
+    --background: 240 5% 10%;
     --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
+    --card: 240 5% 10%;
     --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
+    --popover: 240 5% 10%;
     --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
+    --primary: 182 52% 50%;
+    --primary-foreground: 182 90% 10%;
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
     --muted: 240 3.7% 15.9%;
     --muted-foreground: 240 5% 64.9%;
-    --accent: 100 65% 55%;
-    --accent-foreground: 240 5.9% 10%;
+    --accent: 182 50% 15%;
+    --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
-    --chart-1: 0 0% 98%;
-    --chart-2: 100 65% 55%;
-    --chart-3: 0 0% 50%;
-    --chart-4: 100 65% 35%;
-    --chart-5: 0 0% 80%;
+    --ring: 182 52% 50%;
+    --chart-1: 182 52% 50%;
+    --chart-2: 207 65% 44%;
+    --chart-3: 182 50% 40%;
+    --chart-4: 207 50% 55%;
+    --chart-5: 182 45% 30%;
+    --radius: 0.5rem;
   }
 }
 
@@ -76,5 +77,105 @@
   .no-scrollbar {
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
+  }
+
+  .three-body {
+    --uib-size: 35px;
+    --uib-speed: 0.8s;
+    --uib-color: hsl(var(--primary));
+    position: relative;
+    display: inline-block;
+    height: var(--uib-size);
+    width: var(--uib-size);
+    animation: spin78236 calc(var(--uib-speed) * 2.5) infinite linear;
+  }
+
+  .three-body__dot {
+    position: absolute;
+    height: 100%;
+    width: 30%;
+  }
+
+  .three-body__dot:after {
+    content: '';
+    position: absolute;
+    height: 0%;
+    width: 100%;
+    padding-bottom: 100%;
+    background-color: var(--uib-color);
+    border-radius: 50%;
+  }
+
+  .three-body__dot:nth-child(1) {
+    bottom: 5%;
+    left: 0;
+    transform: rotate(60deg);
+    transform-origin: 50% 85%;
+  }
+
+  .three-body__dot:nth-child(1)::after {
+    bottom: 0;
+    left: 0;
+    animation: wobble1 var(--uib-speed) infinite ease-in-out;
+    animation-delay: calc(var(--uib-speed) * -0.3);
+  }
+
+  .three-body__dot:nth-child(2) {
+    bottom: 5%;
+    right: 0;
+    transform: rotate(-60deg);
+    transform-origin: 50% 85%;
+  }
+
+  .three-body__dot:nth-child(2)::after {
+    bottom: 0;
+    left: 0;
+    animation: wobble1 var(--uib-speed) infinite
+      calc(var(--uib-speed) * -0.15) ease-in-out;
+  }
+
+  .three-body__dot:nth-child(3) {
+    bottom: -5%;
+    left: 0;
+    transform: translateX(116.666%);
+  }
+
+  .three-body__dot:nth-child(3)::after {
+    top: 0;
+    left: 0;
+    animation: wobble2 var(--uib-speed) infinite ease-in-out;
+  }
+
+  @keyframes spin78236 {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes wobble1 {
+    0%,
+    100% {
+      transform: translateY(0%) scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: translateY(-66%) scale(0.65);
+      opacity: 0.8;
+    }
+  }
+
+  @keyframes wobble2 {
+    0%,
+    100% {
+      transform: translateY(0%) scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: translateY(66%) scale(0.65);
+      opacity: 0.8;
+    }
   }
 }

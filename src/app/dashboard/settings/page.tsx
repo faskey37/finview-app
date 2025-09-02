@@ -5,16 +5,16 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useAuth, updateUserProfile, sendPasswordReset, reauthenticate, deleteUserAccount } from "@/hooks/use-auth";
+import { useAuth, sendPasswordReset, reauthenticate, deleteUserAccount } from "@/hooks/use-auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
-import { Moon, Sun, Trash2 } from "lucide-react";
+import { Moon, Sun, Trash2, Sparkles, Bell, Mail, Smartphone, Sprout } from "lucide-react";
 import { useTheme } from "next-themes";
 import {
   AlertDialog,
@@ -27,23 +27,46 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter
+} from "@/components/ui/dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCurrency } from "@/hooks/use-currency";
+import { Badge } from "@/components/ui/badge";
 
 const profileSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email(),
-  photoURL: z.string().url().optional().or(z.literal('')),
+});
+
+const photoSchema = z.object({
+  url: z.string().url("Please enter a valid URL."),
 });
 
 const appearanceSchema = z.object({
   currency: z.string(),
 });
 
+const climateSchema = z.object({
+  roundUpForClimate: z.boolean().default(false),
+});
+
+
 const notificationsSchema = z.object({
-  weeklySummary: z.boolean().default(false),
-  budgetAlerts: z.boolean().default(true),
+    weeklySummary: z.boolean().default(false),
+    budgetAlerts: z.boolean().default(true),
+    pushNotifications: z.object({
+        unusualTransactions: z.boolean().default(true),
+        lowBalance: z.boolean().default(true),
+        goalMilestones: z.boolean().default(true),
+    }).default({}),
 });
 
 const deleteSchema = z.object({
@@ -51,17 +74,23 @@ const deleteSchema = z.object({
 });
 
 export default function SettingsPage() {
-  const { user, loading, userData, updateUserData } = useAuth();
-  const { currency, setCurrency } = useCurrency();
+  const { user, loading, userData, updateUserData, updateAuthUserProfile } = useAuth();
+  const { setCurrency } = useCurrency();
   const { toast } = useToast();
   const { setTheme, theme } = useTheme();
   const [isSaving, setIsSaving] = React.useState(false);
   const [isSendingReset, setIsSendingReset] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
+  const [photoDialogOpen, setPhotoDialogOpen] = React.useState(false);
 
   const profileForm = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
-    defaultValues: { name: "", email: "", photoURL: "" },
+    defaultValues: { name: "", email: "" },
+  });
+  
+  const photoForm = useForm<z.infer<typeof photoSchema>>({
+    resolver: zodResolver(photoSchema),
+    defaultValues: { url: "" },
   });
 
   const appearanceForm = useForm<z.infer<typeof appearanceSchema>>({
@@ -69,9 +98,13 @@ export default function SettingsPage() {
     defaultValues: { currency: "USD" },
   });
 
+  const climateForm = useForm<z.infer<typeof climateSchema>>({
+    resolver: zodResolver(climateSchema),
+  });
+
+
   const notificationsForm = useForm<z.infer<typeof notificationsSchema>>({
     resolver: zodResolver(notificationsSchema),
-    defaultValues: { weeklySummary: false, budgetAlerts: true },
   });
   
   const deleteForm = useForm<z.infer<typeof deleteSchema>>({
@@ -85,24 +118,34 @@ export default function SettingsPage() {
       profileForm.reset({
         name: user.displayName || "",
         email: user.email || "",
-        photoURL: user.photoURL || "",
       });
     }
     if (userData) {
+      photoForm.reset({
+        url: userData.photoURL || user?.photoURL || "",
+      });
       notificationsForm.reset({
         weeklySummary: userData.notifications?.weeklySummary || false,
         budgetAlerts: userData.notifications?.budgetAlerts !== false, // default to true
+        pushNotifications: {
+            unusualTransactions: userData.notifications?.pushNotifications?.unusualTransactions !== false,
+            lowBalance: userData.notifications?.pushNotifications?.lowBalance !== false,
+            goalMilestones: userData.notifications?.pushNotifications?.goalMilestones !== false,
+        }
       });
       appearanceForm.reset({
         currency: userData.currency || "USD",
       });
+       climateForm.reset({
+        roundUpForClimate: userData.roundUpForClimate || false,
+      });
     }
-  }, [user, userData, profileForm, notificationsForm, appearanceForm]);
+  }, [user, userData, profileForm, notificationsForm, appearanceForm, photoForm, climateForm]);
 
   async function handleProfileUpdate(values: z.infer<typeof profileSchema>) {
     setIsSaving(true);
     try {
-      await updateUserProfile({ displayName: values.name, photoURL: values.photoURL });
+      await updateAuthUserProfile({ displayName: values.name });
       toast({ title: "Success", description: "Profile updated successfully." });
     } catch (error) {
       toast({ variant: "destructive", title: "Error", description: "Failed to update profile." });
@@ -110,13 +153,40 @@ export default function SettingsPage() {
       setIsSaving(false);
     }
   }
-  
+
+  async function handlePhotoUpdate(values: z.infer<typeof photoSchema>) {
+    setIsSaving(true);
+    try {
+      await updateAuthUserProfile({ photoURL: values.url });
+      toast({ title: "Success", description: "Profile picture updated." });
+      setPhotoDialogOpen(false);
+    } catch (error) {
+      console.error(error);
+      toast({ variant: "destructive", title: "Error", description: "Failed to update profile picture." });
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+
   async function handleAppearanceUpdate(values: z.infer<typeof appearanceSchema>) {
     setIsSaving(true);
     try {
       await updateUserData({ currency: values.currency });
       setCurrency(values.currency);
       toast({ title: "Success", description: "Appearance settings updated." });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to save settings." });
+    } finally {
+      setIsSaving(false);
+    }
+  }
+  
+    async function handleClimateUpdate(values: z.infer<typeof climateSchema>) {
+    setIsSaving(true);
+    try {
+      await updateUserData({ roundUpForClimate: values.roundUpForClimate });
+      toast({ title: "Success", description: "Climate contribution settings updated." });
     } catch (error) {
       toast({ variant: "destructive", title: "Error", description: "Failed to save settings." });
     } finally {
@@ -157,7 +227,6 @@ export default function SettingsPage() {
       await reauthenticate(user.email, values.password);
       await deleteUserAccount();
       toast({ title: "Account Deleted", description: "Your account has been permanently deleted." });
-      // The user will be redirected via the auth state listener
     } catch (error: any) {
        toast({ variant: "destructive", title: "Error", description: error.message || "Failed to delete account. Please check your password." });
     } finally {
@@ -184,68 +253,98 @@ export default function SettingsPage() {
     <div className="flex flex-col gap-8">
       <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
 
-      <Card>
-          <Form {...profileForm}>
-            <form onSubmit={profileForm.handleSubmit(handleProfileUpdate)}>
-              <CardHeader>
-                <CardTitle className="text-lg">Profile</CardTitle>
+        <Card>
+            <CardHeader>
+                <div className="flex items-center gap-4">
+                    <CardTitle className="text-lg">Profile</CardTitle>
+                    {userData?.isPro && <Badge variant="secondary" className="bg-accent/20 text-accent border border-accent/30"><Sparkles className="mr-1 h-3 w-3 text-accent"/>Pro</Badge>}
+                </div>
                 <CardDescription>Update your personal information.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                 <FormField
-                  control={profileForm.control}
-                  name="photoURL"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Profile Picture</FormLabel>
-                      <div className="flex items-center gap-4">
-                         <Avatar className="h-16 w-16">
-                            <AvatarImage src={field.value || ""} />
-                            <AvatarFallback>{user?.displayName?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
-                        </Avatar>
-                        <FormControl>
-                            <Input placeholder="https://example.com/photo.png" {...field} />
-                        </FormControl>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={profileForm.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Name</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={profileForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input type="email" readOnly disabled {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-               <CardFooter>
-                 <Button type="submit" disabled={isSaving}>
-                    {isSaving ? "Saving..." : "Save Changes"}
-                  </Button>
-               </CardFooter>
-            </form>
-          </Form>
-      </Card>
+            </CardHeader>
+            <CardContent>
+                 <div className="flex items-center gap-6">
+                    <Avatar className="h-20 w-20">
+                        <AvatarImage src={userData?.photoURL || user?.photoURL || ""} />
+                        <AvatarFallback>{user?.displayName?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                    </Avatar>
+                     <Dialog open={photoDialogOpen} onOpenChange={setPhotoDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button variant="outline">Change picture</Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                             <Form {...photoForm}>
+                                <form onSubmit={photoForm.handleSubmit(handlePhotoUpdate)}>
+                                    <DialogHeader>
+                                        <DialogTitle>Update Profile Picture</DialogTitle>
+                                        <DialogDescription>
+                                            Enter a URL for your new profile picture.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                     <div className="py-4">
+                                         <FormField
+                                            control={photoForm.control}
+                                            name="url"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Image URL</FormLabel>
+                                                    <FormControl>
+                                                        <Input type="text" placeholder="https://example.com/image.png" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                     </div>
+                                     <DialogFooter>
+                                       <Button type="submit" disabled={isSaving}>
+                                         {isSaving ? "Saving..." : "Save Changes"}
+                                       </Button>
+                                     </DialogFooter>
+                                </form>
+                            </Form>
+                          </DialogContent>
+                        </Dialog>
+                </div>
+            </CardContent>
+            <Separator />
+            <Form {...profileForm}>
+                <form onSubmit={profileForm.handleSubmit(handleProfileUpdate)}>
+                    <CardContent className="space-y-4 pt-6">
+                        <FormField
+                            control={profileForm.control}
+                            name="name"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Name</FormLabel>
+                                    <FormControl>
+                                        <Input {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={profileForm.control}
+                            name="email"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Email</FormLabel>
+                                    <FormControl>
+                                        <Input type="email" readOnly disabled {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </CardContent>
+                    <CardFooter>
+                        <Button type="submit" disabled={isSaving}>
+                            {isSaving ? "Saving..." : "Save Changes"}
+                        </Button>
+                    </CardFooter>
+                </form>
+            </Form>
+        </Card>
       
       <Card>
         <CardHeader>
@@ -306,6 +405,39 @@ export default function SettingsPage() {
             </Form>
       </Card>
       
+       <Card>
+          <Form {...climateForm}>
+              <form onSubmit={climateForm.handleSubmit(handleClimateUpdate)}>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2"><Sprout className="text-accent"/> Climate Contribution</CardTitle>
+                  <CardDescription>Make a positive impact on the environment.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                     <FormField
+                        control={climateForm.control}
+                        name="roundUpForClimate"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                                <FormLabel>Round-Up for Climate</FormLabel>
+                                <FormDescription>Automatically round up your transactions to the nearest dollar and donate the spare change to verified climate projects.</FormDescription>
+                            </div>
+                            <FormControl>
+                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                            </FormItem>
+                        )}
+                        />
+                </CardContent>
+                <CardFooter>
+                  <Button type="submit" disabled={isSaving}>
+                      {isSaving ? "Saving..." : "Save Preferences"}
+                  </Button>
+                </CardFooter>
+              </form>
+            </Form>
+      </Card>
+
       <Card>
           <Form {...notificationsForm}>
               <form onSubmit={notificationsForm.handleSubmit(handleNotificationsUpdate)}>
@@ -313,37 +445,89 @@ export default function SettingsPage() {
                   <CardTitle className="text-lg">Notifications</CardTitle>
                   <CardDescription>Manage your notification preferences.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                   <FormField
-                      control={notificationsForm.control}
-                      name="weeklySummary"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-base">Weekly Summaries</FormLabel>
-                            <FormMessage />
-                          </div>
-                          <FormControl>
-                            <Switch checked={field.value} onCheckedChange={field.onChange} />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={notificationsForm.control}
-                      name="budgetAlerts"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-base">Budget Alerts</FormLabel>
-                             <FormMessage />
-                          </div>
-                          <FormControl>
-                            <Switch checked={field.value} onCheckedChange={field.onChange} />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
+                <CardContent className="space-y-6">
+                    <div className="space-y-4">
+                        <h4 className="font-medium flex items-center gap-2"><Mail /> Email Notifications</h4>
+                        <FormField
+                        control={notificationsForm.control}
+                        name="weeklySummary"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                                <FormLabel>Weekly Summaries</FormLabel>
+                                <FormDescription>Receive a summary of your financial activity every week.</FormDescription>
+                            </div>
+                            <FormControl>
+                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                            </FormItem>
+                        )}
+                        />
+                        <FormField
+                        control={notificationsForm.control}
+                        name="budgetAlerts"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                                <FormLabel>Budget Alerts</FormLabel>
+                                <FormDescription>Get notified when you are approaching a budget limit.</FormDescription>
+                            </div>
+                            <FormControl>
+                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                            </FormItem>
+                        )}
+                        />
+                    </div>
+
+                     <div className="space-y-4">
+                        <h4 className="font-medium flex items-center gap-2"><Smartphone /> Push Notifications</h4>
+                        <FormField
+                        control={notificationsForm.control}
+                        name="pushNotifications.unusualTransactions"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                                <FormLabel>Unusual Transactions</FormLabel>
+                                <FormDescription>Alerts for large or un-categorized spending.</FormDescription>
+                            </div>
+                            <FormControl>
+                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                            </FormItem>
+                        )}
+                        />
+                         <FormField
+                        control={notificationsForm.control}
+                        name="pushNotifications.lowBalance"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                                <FormLabel>Low Balance Warnings</FormLabel>
+                                <FormDescription>Get an alert when an account balance is low.</FormDescription>
+                            </div>
+                            <FormControl>
+                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                            </FormItem>
+                        )}
+                        />
+                         <FormField
+                        control={notificationsForm.control}
+                        name="pushNotifications.goalMilestones"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                                <FormLabel>Goal Milestones</FormLabel>
+                                <FormDescription>Celebrate when you reach a new savings milestone.</FormDescription>
+                            </div>
+                            <FormControl>
+                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                            </FormItem>
+                        )}
+                        />
+                    </div>
                 </CardContent>
                 <CardFooter>
                   <Button type="submit" disabled={isSaving}>
@@ -375,7 +559,7 @@ export default function SettingsPage() {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This is a permanent action. To confirm, please enter your password.
+                          This is a sensitive operation. To confirm, please enter your password.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                        <div className="py-4">

@@ -1,10 +1,31 @@
 
+"use client";
+
 import { useState, useEffect } from 'react';
-import { getRecurringTransactions } from '@/services/recurring';
-import type { RecurringTransaction } from '@/lib/types';
+import { getRecurringTransactions, getSubscriptions } from '@/services/recurring';
+import type { RecurringTransaction, Subscription } from '@/lib/types';
 import { useAuth } from './use-auth';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
+import { collection, deleteDoc, doc } from 'firebase/firestore';
+
+
+const getRecurringCollection = () => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) throw new Error("User not logged in");
+    return collection(db, 'users', userId, 'recurring');
+}
+
+export const deleteRecurringTransaction = async (id: string) => {
+    try {
+        const docRef = doc(getRecurringCollection(), id);
+        await deleteDoc(docRef);
+    } catch (e) {
+        console.error("Error deleting document: ", e);
+        throw new Error("Failed to delete recurring transaction");
+    }
+};
+
 
 export function useRecurring() {
   const [recurring, setRecurring] = useState<RecurringTransaction[]>([]);
@@ -36,4 +57,35 @@ export function useRecurring() {
   }, [user]);
 
   return { recurring, loading, error };
+}
+
+
+export function useSubscriptions() {
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      setLoading(true);
+      const unsubscribe = getSubscriptions((newSubscriptions) => {
+        setSubscriptions(newSubscriptions);
+        setLoading(false);
+      }, (e) => {
+        setError(e);
+        setLoading(false);
+      });
+      return () => unsubscribe();
+    } else {
+      setSubscriptions([]);
+      setLoading(false);
+    }
+  }, [user]);
+  
+  const deleteSubscription = async (id: string) => {
+    await deleteRecurringTransaction(id);
+  }
+
+  return { subscriptions, loading, error, deleteSubscription };
 }

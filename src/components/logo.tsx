@@ -15,10 +15,10 @@ export default function Logo({ className, isCollapsed = false }: LogoProps) {
         alt="EcoVest Logo"
         width={36}
         height={36}
-        className="h-9 w-9 object-contain"
+        className="h-9 w-9 object-contain rounded-full"
       />
       <span className={cn(
-          "text-xl font-semibold text-primary", 
+          "text-xl font-semibold text-white", 
           isCollapsed && "sr-only"
         )}>
           EcoVest

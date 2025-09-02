@@ -1,7 +1,7 @@
 
 import { db, auth } from '@/lib/firebase';
-import { collection, addDoc, onSnapshot, query, deleteDoc, doc } from 'firebase/firestore';
-import type { RecurringTransaction } from '@/lib/types';
+import { collection, addDoc, onSnapshot, query, deleteDoc, doc, where, getDocs } from 'firebase/firestore';
+import type { RecurringTransaction, Subscription } from '@/lib/types';
 
 const getRecurringCollection = () => {
     const userId = auth.currentUser?.uid;
@@ -11,7 +11,16 @@ const getRecurringCollection = () => {
 
 export const addRecurringTransaction = async (transaction: Omit<RecurringTransaction, 'id'>) => {
   try {
-    const docRef = await addDoc(getRecurringCollection(), transaction);
+     const recurringCollection = getRecurringCollection();
+    // Check if a subscription with the same name already exists
+    const q = query(recurringCollection, where("description", "==", transaction.description));
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+        console.log(`Subscription "${transaction.description}" already exists. Skipping.`);
+        return null;
+    }
+
+    const docRef = await addDoc(recurringCollection, transaction);
     return docRef.id;
   } catch (e) {
     console.error("Error adding document: ", e);
@@ -40,12 +49,34 @@ export const getRecurringTransactions = (callback: (transactions: RecurringTrans
   return unsubscribe;
 };
 
-export const deleteRecurringTransaction = async (id: string) => {
-    try {
-        const docRef = doc(getRecurringCollection(), id);
-        await deleteDoc(docRef);
-    } catch (e) {
-        console.error("Error deleting document: ", e);
-        throw new Error("Failed to delete recurring transaction");
+export const getSubscriptions = (
+  callback: (subscriptions: Subscription[]) => void,
+  errorCallback: (error: Error) => void
+) => {
+    if (!auth.currentUser) {
+        callback([]);
+        return () => {};
     }
+    const recurringCollection = getRecurringCollection();
+    const q = query(recurringCollection, where('type', '==', 'expense'));
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const subscriptions: Subscription[] = [];
+        querySnapshot.forEach((doc) => {
+            const data = doc.data() as RecurringTransaction;
+            subscriptions.push({
+                id: doc.id,
+                name: data.description,
+                monthlyCost: data.amount,
+                category: data.category,
+                suggestion: data.suggestion
+            });
+        });
+        callback(subscriptions);
+    }, (error) => {
+        console.error("Error fetching subscriptions:", error);
+        errorCallback(error);
+    });
+
+    return unsubscribe;
 };

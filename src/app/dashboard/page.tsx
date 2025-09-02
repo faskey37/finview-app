@@ -9,6 +9,9 @@ import { useTransactions } from "@/hooks/use-transactions";
 import { useBudgets } from "@/hooks/use-budgets";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { CategoryData, ChartData } from "@/lib/types";
+import { FinancialHealthScoreCard } from "@/components/dashboard/financial-health-score";
+import { useGoals } from "@/hooks/use-goals";
+import { useAccounts } from "@/hooks/use-accounts";
 
 function processChartData(transactions: any[]): ChartData[] {
   const monthlyData: { [key: string]: { income: number; expense: number } } = {};
@@ -65,8 +68,11 @@ function processCategoryData(transactions: any[]): CategoryData[] {
 export default function DashboardPage() {
   const { transactions, loading: transactionsLoading } = useTransactions();
   const { budgets, loading: budgetsLoading } = useBudgets();
+  const { goals, loading: goalsLoading } = useGoals();
+  const { accounts, loading: accountsLoading } = useAccounts();
 
-  const loading = transactionsLoading || budgetsLoading;
+
+  const loading = transactionsLoading || budgetsLoading || goalsLoading || accountsLoading;
 
   const totalIncome = transactions
     .filter(t => t.type === 'income')
@@ -75,6 +81,8 @@ export default function DashboardPage() {
   const totalExpense = transactions
     .filter(t => t.type === 'expense')
     .reduce((acc, t) => acc + t.amount, 0);
+    
+  const totalBalance = accounts.reduce((acc, account) => acc + account.balance, 0);
 
   const budgetWithSpent = budgets.map(budget => {
     const spent = transactions
@@ -89,7 +97,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="flex flex-col gap-8">
-        <Skeleton className="h-10 w-48" />
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Skeleton className="h-28" />
           <Skeleton className="h-28" />
@@ -118,12 +126,24 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">
+        <div className="xl:col-span-2">
+          <Budgets budgets={budgetWithSpent} />
+        </div>
+        <FinancialHealthScoreCard
+            totalIncome={totalIncome}
+            totalExpense={totalExpense}
+            totalBalance={totalBalance}
+            goals={goals}
+            budgets={budgetWithSpent}
+        />
+      </div>
+
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-2">
-        <Budgets budgets={budgetWithSpent} />
+        <RecentTransactions transactions={transactions.slice(0, 5)} />
         <SavingsTips transactions={transactions} />
       </div>
 
-      <RecentTransactions transactions={transactions.slice(0, 5)} />
     </div>
   );
 }

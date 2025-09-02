@@ -38,11 +38,16 @@ export type Account = {
 }
 
 export type UserData = {
+    photoURL: string;
+    roundUpForClimate: boolean;
+    isPro: any;
     uid: string;
     email: string;
     displayName: string;
     currency?: string;
     notifications?: {
+        pushNotifications: any;
+        pushNotifications: any;
         weeklySummary?: boolean;
         budgetAlerts?: boolean;
     }

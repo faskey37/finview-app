@@ -23,15 +23,18 @@ interface AuthContextType {
     user: User | null;
     userData: UserData | null;
     loading: boolean;
+    isPro: boolean;
     updateUserData: (data: Partial<UserData>) => Promise<void>;
+    updateAuthUserProfile: (profile: { displayName?: string, photoURL?: string }) => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, userData: null, loading: true, updateUserData: async () => {} });
+const AuthContext = createContext<AuthContextType>({ user: null, userData: null, loading: true, isPro: false, updateUserData: async () => {}, updateAuthUserProfile: async () => {} });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [userData, setUserData] = useState<UserData | null>(null);
     const [loading, setLoading] = useState(true);
+    const isPro = userData?.isPro || false;
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -39,11 +42,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (user) {
                 const userDocRef = doc(db, "users", user.uid);
                 const docSnap = await getDoc(userDocRef);
+                 const isDefaultPro = true; // Make all users pro by default for local dev
+
                 if (docSnap.exists()) {
-                    setUserData(docSnap.data() as UserData);
+                    const existingData = docSnap.data() as UserData;
+                     if (isDefaultPro && !existingData.isPro) {
+                        await setDoc(userDocRef, { isPro: true }, { merge: true });
+                        setUserData({ ...existingData, isPro: true });
+                    } else {
+                        setUserData(existingData);
+                    }
                 } else {
-                    // Create user doc if it doesn't exist for some reason
-                     await setDoc(userDocRef, { uid: user.uid, email: user.email, displayName: user.displayName, currency: "USD" }, { merge: true });
+                     const newUser: UserData = {
+                        uid: user.uid,
+                        email: user.email || '',
+                        displayName: user.displayName || 'New User',
+                        currency: "USD",
+                        isPro: isDefaultPro, 
+                        roundUpForClimate: false,
+                        notifications: {
+                            weeklySummary: false,
+                            budgetAlerts: true,
+                            pushNotifications: {
+                                unusualTransactions: true,
+                                lowBalance: true,
+                                goalMilestones: true,
+                            }
+                        }
+                    };
+                     await setDoc(userDocRef, newUser);
+                     setUserData(newUser);
                 }
             } else {
                 setUserData(null);
@@ -58,11 +86,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!user) return;
         const userDocRef = doc(db, "users", user.uid);
         await setDoc(userDocRef, data, { merge: true });
-        setUserData(prevData => ({ ...prevData, ...data }));
+        setUserData(prevData => ({ ...prevData, ...data } as UserData));
     };
 
+    const updateAuthUserProfile = async (profile: { displayName?: string, photoURL?: string }) => {
+        if (!auth.currentUser) throw new Error("No user logged in to update.");
+        await updateProfile(auth.currentUser, profile);
+        setUser({ ...auth.currentUser } as User); 
+        if(profile.displayName) {
+             await updateUserData({ displayName: profile.displayName });
+        }
+         if (profile.photoURL) {
+            await updateUserData({ photoURL: profile.photoURL });
+        }
+    }
+
     return (
-        <AuthContext.Provider value={{ user, userData, loading, updateUserData }}>
+        <AuthContext.Provider value={{ user, userData, loading, isPro, updateUserData, updateAuthUserProfile }}>
             {children}
         </AuthContext.Provider>
     );
@@ -76,17 +116,10 @@ export const signUp = async (email: string, password: string, displayName: strin
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
     await updateProfile(user, { displayName });
-    // Create a document for the user in the 'users' collection
-    await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-        currency: "USD",
-        notifications: {
-            weeklySummary: false,
-            budgetAlerts: true
-        }
-    });
+    
+    // The onAuthStateChanged listener in AuthProvider will handle creating the user doc.
+    // This removes the duplicate logic.
+    
     return user;
 }
 
@@ -96,13 +129,6 @@ export const signIn = async (email: string, password: string) => {
 
 export const signOutUser = async () => {
     return signOut(auth);
-}
-
-export const updateUserProfile = async (profile: { displayName?: string, photoURL?: string }) => {
-    if (!auth.currentUser) throw new Error("No user logged in to update.");
-    await updateProfile(auth.currentUser, profile);
-    // Also update the user document in Firestore
-    await setDoc(doc(db, "users", auth.currentUser.uid), profile, { merge: true });
 }
 
 export const sendPasswordReset = async (email: string) => {
@@ -120,10 +146,8 @@ export const deleteUserAccount = async (): Promise<void> => {
     if (!user) throw new Error("No user is currently signed in.");
 
     try {
-        // 1. Delete Firestore data
         const userDocRef = doc(db, 'users', user.uid);
         
-        // Delete subcollections (transactions, accounts, budgets)
         const collectionsToDelete = ['transactions', 'accounts', 'budgets', 'goals', 'investments', 'recurring'];
         for (const subcollection of collectionsToDelete) {
             const subcollectionRef = collection(db, 'users', user.uid, subcollection);
@@ -135,10 +159,7 @@ export const deleteUserAccount = async (): Promise<void> => {
             await batch.commit();
         }
 
-        // Delete the user document itself
         await deleteDoc(userDocRef);
-
-        // 2. Delete the user from Firebase Authentication
         await deleteUser(user);
 
     } catch (error) {

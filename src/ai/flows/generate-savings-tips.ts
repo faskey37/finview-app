@@ -25,7 +25,7 @@ export type GenerateSavingsTipsInput = z.infer<typeof GenerateSavingsTipsInputSc
 const GenerateSavingsTipsOutputSchema = z.object({
   savingsTips: z
     .string()
-    .describe('AI-powered suggestions for potential savings opportunities.'),
+    .describe('AI-powered suggestions for potential savings opportunities, formatted in Markdown.'),
 });
 export type GenerateSavingsTipsOutput = z.infer<typeof GenerateSavingsTipsOutputSchema>;
 
@@ -40,12 +40,15 @@ const prompt = ai.definePrompt({
   input: {schema: GenerateSavingsTipsInputSchema},
   output: {schema: GenerateSavingsTipsOutputSchema},
 
-  prompt: `You are a personal finance advisor. Analyze the following spending data and provide actionable savings tips.
+  prompt: `You are a friendly and encouraging personal finance advisor for an app called "Eco Vest".
+Your goal is to analyze a user's spending data and provide actionable, easy-to-understand savings tips.
 
-Spending Data:
+Analyze the following spending data:
 {{{spendingData}}}
 
-Provide specific and practical suggestions on how the user can save money based on their spending habits.`,
+Based on this data, provide at least three specific and practical tips on how the user can save money.
+Format your response using Markdown for readability. For example, use bullet points for each tip. Be encouraging and avoid being judgmental.
+Focus on high-impact areas where the user spends the most.`,
 });
 
 const generateSavingsTipsFlow = ai.defineFlow(
@@ -56,6 +59,9 @@ const generateSavingsTipsFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    return output!;
+     if (!output) {
+      return { savingsTips: "Sorry, I couldn't come up with any tips right now. Please try again later." };
+    }
+    return output;
   }
 );
