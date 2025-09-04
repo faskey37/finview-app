@@ -179,3 +179,20 @@
     }
   }
 }
+/* Additional styles for the AI assistant */
+.animate-bounce {
+  animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.transition-colors {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}

@@ -74,6 +74,7 @@ export type Goal = {
 }
 
 export type RecurringTransaction = {
+    suggestion: any;
     id: string;
     description: string;
     amount: number;

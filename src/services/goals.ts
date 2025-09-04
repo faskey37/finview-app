@@ -1,6 +1,6 @@
 
 import { db, auth } from '@/lib/firebase';
-import { collection, addDoc, onSnapshot, query, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, deleteDoc, doc, updateDoc, getDocs } from 'firebase/firestore';
 import type { Goal } from '@/lib/types';
 
 const getGoalsCollection = () => {

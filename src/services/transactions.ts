@@ -1,6 +1,6 @@
 
 import { db, auth } from '@/lib/firebase';
-import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, getDocs } from 'firebase/firestore';
 import type { Transaction } from '@/lib/types';
 
 const getTransactionsCollection = () => {
@@ -20,8 +20,8 @@ export const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
   }
 };
 
-// Get real-time updates on transactions
-export const getTransactions = (callback: (transactions: Transaction[]) => void) => {
+// Get real-time updates on transactions or a one-time fetch
+export const getTransactions = (callback: (transactions: Transaction[]) => void): (() => void) => {
     if (!auth.currentUser) {
         callback([]);
         return () => {};
@@ -41,6 +41,7 @@ export const getTransactions = (callback: (transactions: Transaction[]) => void)
 
     return unsubscribe;
 };
+
 
 // Delete a transaction
 export const deleteTransaction = async (id: string) => {

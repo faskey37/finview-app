@@ -19,7 +19,8 @@ import {
   Activity,
   Users,
   ShieldCheck,
-  PiggyBank
+  PiggyBank,
+  BrainCircuit
 } from "lucide-react";
 import Logo from "@/components/logo";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,7 @@ import { useSidebar } from "@/hooks/use-sidebar";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/dashboard/assistant", icon: BrainCircuit, label: "AI Assistant", isPro: true },
   { href: "/dashboard/transactions", icon: ArrowLeftRight, label: "Transactions" },
   { href: "/dashboard/accounts", icon: Wallet, label: "Accounts" },
   { href: "/dashboard/net-worth", icon: PiggyBank, label: "Net Worth" },
@@ -64,7 +66,9 @@ export function DashboardSidebar({ isMobile = false }) {
       </div>
       <div className="flex-1 overflow-y-auto no-scrollbar">
         <nav className="grid items-start px-2 text-sm font-medium lg:px-4 gap-2 py-4">
-          {navItems.map((item) => (
+          {navItems.map((item) => {
+            if (item.isPro && !isPro) return null;
+            return (
              <Tooltip key={item.label} delayDuration={0}>
                 <TooltipTrigger asChild>
                     <Link
@@ -77,6 +81,9 @@ export function DashboardSidebar({ isMobile = false }) {
                     >
                     <item.icon className="h-4 w-4" />
                     <span className={cn("truncate", isCollapsed && "sr-only")}>{item.label}</span>
+                     {item.isPro && (
+                            <span className={cn("ml-auto text-xs font-semibold text-accent", isCollapsed && "sr-only")}>Pro</span>
+                        )}
                     </Link>
                 </TooltipTrigger>
                  {isCollapsed && (
@@ -85,7 +92,7 @@ export function DashboardSidebar({ isMobile = false }) {
                   </TooltipContent>
                 )}
             </Tooltip>
-          ))}
+          )})}
         </nav>
         <div className="my-4 px-4">
             <hr className="border-border" />

@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { addRecurringTransaction, deleteRecurringTransaction } from "@/services/recurring";
+import type { SubscriptionInsight } from "@/lib/types"
 
 const categoryColors: { [key: string]: string } = {
     Entertainment: "bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300",
@@ -38,7 +39,7 @@ const categoryColors: { [key: string]: string } = {
 
 
 export default function SubscriptionsPage() {
-    const { subscriptions, loading: subsLoading } = useSubscriptions()
+    const { subscriptions, loading: subsLoading, deleteSubscription } = useSubscriptions()
     const { transactions, loading: transLoading } = useTransactions()
     const { isPro } = useAuth()
     const router = useRouter()
@@ -62,8 +63,8 @@ export default function SubscriptionsPage() {
             const result = await generateSubscriptionInsights({ transactions: JSON.stringify(transactions) });
             
             // Save each insight as a recurring transaction
-            for (const insight of result.insights) {
-              await addRecurringTransaction({
+            const promises = result.insights.map((insight: SubscriptionInsight) => {
+              return addRecurringTransaction({
                 description: insight.name,
                 amount: insight.monthlyCost,
                 type: 'expense',
@@ -72,7 +73,9 @@ export default function SubscriptionsPage() {
                 startDate: new Date().toLocaleDateString('en-CA'),
                 suggestion: insight.suggestion
               });
-            }
+            });
+
+            await Promise.all(promises);
 
             toast({ title: "Success", description: "Found subscriptions have been added to your list."})
         } catch (e) {
@@ -86,7 +89,7 @@ export default function SubscriptionsPage() {
     const handleDelete = async (id: string) => {
         setIsDeleting(true);
         try {
-            await deleteRecurringTransaction(id);
+            await deleteSubscription(id);
             toast({ title: "Success", description: "Subscription deleted successfully." });
         } catch (error) {
             console.error("Error deleting subscription:", error);
@@ -198,3 +201,5 @@ export default function SubscriptionsPage() {
     </div>
   )
 }
+
+    

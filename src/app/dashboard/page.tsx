@@ -1,3 +1,4 @@
+
 "use client"
 import { OverviewCards } from "@/components/dashboard/overview-cards";
 import { SpendingChart } from "@/components/dashboard/spending-chart";
@@ -12,6 +13,10 @@ import type { CategoryData, ChartData } from "@/lib/types";
 import { FinancialHealthScoreCard } from "@/components/dashboard/financial-health-score";
 import { useGoals } from "@/hooks/use-goals";
 import { useAccounts } from "@/hooks/use-accounts";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { BrainCircuit, ChevronRight } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 function processChartData(transactions: any[]): ChartData[] {
   const monthlyData: { [key: string]: { income: number; expense: number } } = {};
@@ -114,6 +119,24 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-8">
       <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+
+        <Card className="bg-accent/20 border-accent/30">
+            <CardHeader className="flex flex-row items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <BrainCircuit className="h-10 w-10 text-accent" />
+                    <div>
+                        <CardTitle className="text-lg">Meet Your AI Assistant</CardTitle>
+                        <CardDescription>Ask questions about your finances, get insights, and more.</CardDescription>
+                    </div>
+                </div>
+                 <Button asChild>
+                    <Link href="/dashboard/assistant">
+                        Ask Now
+                        <ChevronRight/>
+                    </Link>
+                </Button>
+            </CardHeader>
+        </Card>
       
       <OverviewCards income={totalIncome} expense={totalExpense} />
 
