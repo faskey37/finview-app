@@ -1,6 +1,5 @@
-
 import { db, auth } from '@/lib/firebase';
-import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, getDocs } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import type { Transaction } from '@/lib/types';
 
 const getTransactionsCollection = () => {
@@ -42,11 +41,14 @@ export const getTransactions = (callback: (transactions: Transaction[]) => void)
     return unsubscribe;
 };
 
-
-// Delete a transaction
+// Delete a transaction - FIXED
 export const deleteTransaction = async (id: string) => {
     try {
-        const docRef = doc(getTransactionsCollection(), id);
+        const userId = auth.currentUser?.uid;
+        if (!userId) throw new Error("User not logged in");
+        
+        // Create document reference using path segments directly
+        const docRef = doc(db, 'users', userId, 'transactions', id);
         await deleteDoc(docRef);
     } catch (e) {
         console.error("Error deleting document: ", e);

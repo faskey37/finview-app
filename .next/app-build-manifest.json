@@ -11,30 +11,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/layout.js"
     ],
-    "/dashboard/page": [
+    "/dashboard/transactions/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/page.js"
-    ],
-    "/dashboard/bill-negotiation/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/bill-negotiation/page.js"
-    ],
-    "/dashboard/assistant/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/assistant/page.js"
-    ],
-    "/dashboard/subscriptions/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/subscriptions/page.js"
-    ],
-    "/dashboard/news/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/news/page.js"
+      "static/chunks/app/dashboard/transactions/page.js"
     ]
   }
 }

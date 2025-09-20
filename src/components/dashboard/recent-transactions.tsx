@@ -245,8 +245,8 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {transactions.map((transaction) => (
-              <TableRow key={transaction.id}>
+            {transactions.map((transaction, index) => (
+              <TableRow key={transaction.id || index}>
                 <TableCell className="font-medium">
                   {transaction.description}
                 </TableCell>
