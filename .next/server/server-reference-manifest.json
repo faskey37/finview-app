@@ -1,5 +1,22 @@
 {
-  "node": {},
+  "node": {
+    "1f984c47b33d9567a204fea27590f9dc72422ccd": {
+      "workers": {
+        "app/dashboard/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cgenerate-savings-tips.ts%22%2C%5B%22generateSavingsTips%22%5D%5D%2C%5B%22D%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cgenerate-financial-health-score.ts%22%2C%5B%22generateFinancialHealthScore%22%5D%5D%5D&encryptionKey=8VMPBkvsHSgSAbtQPMY19YmZJwz%2FPe%2BSu3MP0qzjleI%3D&__client_imported__=true!"
+      },
+      "layer": {
+        "app/dashboard/page": "action-browser"
+      }
+    },
+    "8b66da01baa2fa995b480f845836e18a9a3cc131": {
+      "workers": {
+        "app/dashboard/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cgenerate-savings-tips.ts%22%2C%5B%22generateSavingsTips%22%5D%5D%2C%5B%22D%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cgenerate-financial-health-score.ts%22%2C%5B%22generateFinancialHealthScore%22%5D%5D%5D&encryptionKey=8VMPBkvsHSgSAbtQPMY19YmZJwz%2FPe%2BSu3MP0qzjleI%3D&__client_imported__=true!"
+      },
+      "layer": {
+        "app/dashboard/page": "action-browser"
+      }
+    }
+  },
   "edge": {},
   "encryptionKey": "8VMPBkvsHSgSAbtQPMY19YmZJwz/Pe+Su3MP0qzjleI="
 }
