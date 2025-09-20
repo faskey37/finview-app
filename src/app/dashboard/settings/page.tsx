@@ -5,7 +5,7 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useAuth, sendPasswordReset, reauthenticate, deleteUserAccount } from "@/hooks/use-auth";
+import { useAuth, sendPasswordReset, reauthenticate, deleteUserAccount, updateUserEmail } from "@/hooks/use-auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
-import { Moon, Sun, Trash2, Sparkles, Bell, Mail, Smartphone, Sprout } from "lucide-react";
+import { Moon, Sun, Trash2, Sparkles, Bell, Mail, Smartphone, Sprout, Edit } from "lucide-react";
 import { useTheme } from "next-themes";
 import {
   AlertDialog,
@@ -40,10 +40,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCurrency } from "@/hooks/use-currency";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 const profileSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  email: z.string().email(),
+});
+
+const emailSchema = z.object({
+  email: z.string().email("Please enter a valid email address."),
+  password: z.string().min(1, "Password is required."),
 });
 
 const photoSchema = z.object({
@@ -82,12 +87,18 @@ export default function SettingsPage() {
   const [isSendingReset, setIsSendingReset] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [photoDialogOpen, setPhotoDialogOpen] = React.useState(false);
+  const [emailDialogOpen, setEmailDialogOpen] = React.useState(false);
 
   const profileForm = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
-    defaultValues: { name: "", email: "" },
+    defaultValues: { name: "" },
   });
   
+  const emailForm = useForm<z.infer<typeof emailSchema>>({
+    resolver: zodResolver(emailSchema),
+    defaultValues: { email: "", password: "" },
+  });
+
   const photoForm = useForm<z.infer<typeof photoSchema>>({
     resolver: zodResolver(photoSchema),
     defaultValues: { url: "" },
@@ -100,11 +111,21 @@ export default function SettingsPage() {
 
   const climateForm = useForm<z.infer<typeof climateSchema>>({
     resolver: zodResolver(climateSchema),
+    defaultValues: { roundUpForClimate: false },
   });
 
 
   const notificationsForm = useForm<z.infer<typeof notificationsSchema>>({
     resolver: zodResolver(notificationsSchema),
+    defaultValues: {
+        weeklySummary: false,
+        budgetAlerts: true,
+        pushNotifications: {
+            unusualTransactions: true,
+            lowBalance: true,
+            goalMilestones: true,
+        }
+    }
   });
   
   const deleteForm = useForm<z.infer<typeof deleteSchema>>({
@@ -114,33 +135,32 @@ export default function SettingsPage() {
 
 
   React.useEffect(() => {
-    if (user) {
-      profileForm.reset({
-        name: user.displayName || "",
-        email: user.email || "",
-      });
-    }
-    if (userData) {
-      photoForm.reset({
-        url: userData.photoURL || user?.photoURL || "",
-      });
-      notificationsForm.reset({
-        weeklySummary: userData.notifications?.weeklySummary || false,
-        budgetAlerts: userData.notifications?.budgetAlerts !== false, // default to true
-        pushNotifications: {
-            unusualTransactions: userData.notifications?.pushNotifications?.unusualTransactions !== false,
-            lowBalance: userData.notifications?.pushNotifications?.lowBalance !== false,
-            goalMilestones: userData.notifications?.pushNotifications?.goalMilestones !== false,
-        }
-      });
-      appearanceForm.reset({
-        currency: userData.currency || "USD",
-      });
-       climateForm.reset({
-        roundUpForClimate: userData.roundUpForClimate || false,
-      });
-    }
-  }, [user, userData, profileForm, notificationsForm, appearanceForm, photoForm, climateForm]);
+    profileForm.reset({
+      name: user?.displayName || "",
+    });
+    emailForm.reset({
+      email: user?.email || "",
+      password: ""
+    });
+    photoForm.reset({
+      url: userData?.photoURL || user?.photoURL || "",
+    });
+    notificationsForm.reset({
+      weeklySummary: userData?.notifications?.weeklySummary || false,
+      budgetAlerts: userData?.notifications?.budgetAlerts !== false, // default to true
+      pushNotifications: {
+          unusualTransactions: userData?.notifications?.pushNotifications?.unusualTransactions !== false,
+          lowBalance: userData?.notifications?.pushNotifications?.lowBalance !== false,
+          goalMilestones: userData?.notifications?.pushNotifications?.goalMilestones !== false,
+      }
+    });
+    appearanceForm.reset({
+      currency: userData?.currency || "USD",
+    });
+    climateForm.reset({
+      roundUpForClimate: userData?.roundUpForClimate || false,
+    });
+  }, [user, userData, profileForm, emailForm, notificationsForm, appearanceForm, photoForm, climateForm]);
 
   async function handleProfileUpdate(values: z.infer<typeof profileSchema>) {
     setIsSaving(true);
@@ -153,6 +173,20 @@ export default function SettingsPage() {
       setIsSaving(false);
     }
   }
+
+  async function handleEmailUpdate(values: z.infer<typeof emailSchema>) {
+    setIsSaving(true);
+    try {
+      await updateUserEmail(values.email, values.password);
+      toast({ title: "Success!", description: "A verification link has been sent to your new email address. Please verify to complete the change." });
+      setEmailDialogOpen(false);
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Error", description: error.message || "Failed to update email." });
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
 
   async function handlePhotoUpdate(values: z.infer<typeof photoSchema>) {
     setIsSaving(true);
@@ -257,7 +291,19 @@ export default function SettingsPage() {
             <CardHeader>
                 <div className="flex items-center gap-4">
                     <CardTitle className="text-lg">Profile</CardTitle>
-                    {userData?.isPro && <Badge variant="secondary" className="bg-accent/20 text-accent border border-accent/30"><Sparkles className="mr-1 h-3 w-3 text-accent"/>Pro</Badge>}
+                    {userData?.isPro && (
+                      <Badge 
+                        variant="default"
+                        className={cn(
+                          "border-transparent animate-pulse"
+                          )}
+                        style={{
+                          boxShadow: '0 0 8px hsl(var(--primary)), 0 0 16px hsl(var(--primary))'
+                        }}
+                      >
+                        <Sparkles className="mr-1 h-3 w-3"/>Pro
+                      </Badge>
+                    )}
                 </div>
                 <CardDescription>Update your personal information.</CardDescription>
             </CardHeader>
@@ -323,23 +369,53 @@ export default function SettingsPage() {
                                 </FormItem>
                             )}
                         />
-                        <FormField
-                            control={profileForm.control}
-                            name="email"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Email</FormLabel>
-                                    <FormControl>
-                                        <Input type="email" readOnly disabled {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                        <div className="space-y-2">
+                          <FormLabel>Email</FormLabel>
+                          <div className="flex items-center gap-4">
+                            <Input readOnly disabled value={user?.email || ''} />
+                            <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+                              <DialogTrigger asChild>
+                                 <Button variant="outline" type="button"><Edit /> Edit Email</Button>
+                              </DialogTrigger>
+                               <DialogContent>
+                                  <Form {...emailForm}>
+                                    <form onSubmit={emailForm.handleSubmit(handleEmailUpdate)}>
+                                      <DialogHeader>
+                                        <DialogTitle>Change Email Address</DialogTitle>
+                                        <DialogDescription>
+                                          Enter your new email and current password to make the change.
+                                        </DialogDescription>
+                                      </DialogHeader>
+                                      <div className="space-y-4 py-4">
+                                        <FormField control={emailForm.control} name="email" render={({ field }) => (
+                                          <FormItem>
+                                            <FormLabel>New Email</FormLabel>
+                                            <FormControl><Input type="email" {...field} /></FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )} />
+                                        <FormField control={emailForm.control} name="password" render={({ field }) => (
+                                          <FormItem>
+                                            <FormLabel>Current Password</FormLabel>
+                                            <FormControl><Input type="password" {...field} /></FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )} />
+                                      </div>
+                                      <DialogFooter>
+                                        <Button variant="ghost" onClick={() => setEmailDialogOpen(false)}>Cancel</Button>
+                                        <Button type="submit" disabled={isSaving}>{isSaving ? "Updating..." : "Update Email"}</Button>
+                                      </DialogFooter>
+                                    </form>
+                                  </Form>
+                                </DialogContent>
+                            </Dialog>
+                          </div>
+                        </div>
                     </CardContent>
                     <CardFooter>
                         <Button type="submit" disabled={isSaving}>
-                            {isSaving ? "Saving..." : "Save Changes"}
+                            {isSaving ? "Saving Name..." : "Save Name"}
                         </Button>
                     </CardFooter>
                 </form>

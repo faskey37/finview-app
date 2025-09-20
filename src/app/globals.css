@@ -10,53 +10,67 @@
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 182 52% 42%;
+    --primary: 207 65% 50%;
     --primary-foreground: 0 0% 98%;
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
     --muted: 240 4.8% 95.9%;
     --muted-foreground: 240 3.8% 46.1%;
-    --accent: 182 40% 95%;
-    --accent-foreground: 182 50% 30%;
+    --accent: 195 80% 95%;
+    --accent-foreground: 195 90% 30%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 182 52% 42%;
-    --chart-1: 182 52% 42%;
-    --chart-2: 207 65% 34%;
-    --chart-3: 182 50% 55%;
-    --chart-4: 207 50% 45%;
-    --chart-5: 182 45% 65%;
+    --ring: 207 65% 50%;
+    --chart-1: 207 65% 50%;
+    --chart-2: 200 75% 45%;
+    --chart-3: 207 60% 60%;
+    --chart-4: 200 70% 55%;
+    --chart-5: 207 55% 70%;
     --radius: 0.5rem;
+    
+    --info: 210 90% 96%;
+    --info-foreground: 210 80% 40%;
+    --success: 142 80% 96%;
+    --success-foreground: 142 70% 30%;
+    --warning: 48 90% 96%;
+    --warning-foreground: 48 80% 40%;
   }
 
   .dark {
-    --background: 240 5% 10%;
+    --background: 240 6% 8%;
     --foreground: 0 0% 98%;
-    --card: 240 5% 10%;
+    --card: 240 6% 8%;
     --card-foreground: 0 0% 98%;
-    --popover: 240 5% 10%;
+    --popover: 240 6% 8%;
     --popover-foreground: 0 0% 98%;
-    --primary: 182 52% 50%;
-    --primary-foreground: 182 90% 10%;
+    --primary: 207 65% 50%;
+    --primary-foreground: 0 0% 98%;
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
     --muted: 240 3.7% 15.9%;
     --muted-foreground: 240 5% 64.9%;
-    --accent: 182 50% 15%;
+    --accent: 195 80% 15%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
-    --ring: 182 52% 50%;
-    --chart-1: 182 52% 50%;
-    --chart-2: 207 65% 44%;
-    --chart-3: 182 50% 40%;
-    --chart-4: 207 50% 55%;
-    --chart-5: 182 45% 30%;
+    --ring: 207 65% 50%;
+    --chart-1: 207 65% 50%;
+    --chart-2: 200 75% 55%;
+    --chart-3: 207 60% 40%;
+    --chart-4: 200 70% 65%;
+    --chart-5: 207 55% 30%;
     --radius: 0.5rem;
+
+    --info: 210 50% 12%;
+    --info-foreground: 210 80% 70%;
+    --success: 142 50% 12%;
+    --success-foreground: 142 70% 60%;
+    --warning: 48 50% 12%;
+    --warning-foreground: 48 80% 70%;
   }
 }
 
@@ -178,21 +192,4 @@
       opacity: 0.8;
     }
   }
-}
-/* Additional styles for the AI assistant */
-.animate-bounce {
-  animation: bounce 1s infinite;
-}
-
-@keyframes bounce {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-5px);
-  }
-}
-
-.transition-colors {
-  transition: background-color 0.2s ease, color 0.2s ease;
 }

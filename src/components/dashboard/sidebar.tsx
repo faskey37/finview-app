@@ -82,7 +82,7 @@ export function DashboardSidebar({ isMobile = false }) {
                     <item.icon className="h-4 w-4" />
                     <span className={cn("truncate", isCollapsed && "sr-only")}>{item.label}</span>
                      {item.isPro && (
-                            <span className={cn("ml-auto text-xs font-semibold text-accent", isCollapsed && "sr-only")}>Pro</span>
+                            <span className={cn("ml-auto text-xs font-semibold text-primary", isCollapsed && "sr-only")}>Pro</span>
                         )}
                     </Link>
                 </TooltipTrigger>
@@ -114,7 +114,7 @@ export function DashboardSidebar({ isMobile = false }) {
                         <item.icon className="h-4 w-4" />
                         <span className={cn("truncate", isCollapsed && "sr-only")}>{item.label}</span>
                          {item.isPro && (
-                            <span className={cn("ml-auto text-xs font-semibold text-accent", isCollapsed && "sr-only")}>Pro</span>
+                            <span className={cn("ml-auto text-xs font-semibold text-primary", isCollapsed && "sr-only")}>Pro</span>
                         )}
                         </Link>
                     </TooltipTrigger>

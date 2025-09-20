@@ -11,14 +11,14 @@ export default function Logo({ className, isCollapsed = false }: LogoProps) {
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <Image
-        src="https://github.com/faskey37/My-Portfolio/blob/main/WhatsApp_Image_2025-08-31_at_10.41.40_cab56ce6-removebg-preview.png?raw=true"
+        src="https://raw.githubusercontent.com/faskey37/My-Portfolio/main/logo.png"
         alt="EcoVest Logo"
         width={36}
         height={36}
-        className="h-9 w-9 object-contain rounded-full"
+        className="h-9 w-9 object-contain"
       />
       <span className={cn(
-          "text-xl font-semibold text-white", 
+          "text-xl font-semibold text-card-foreground", 
           isCollapsed && "sr-only"
         )}>
           EcoVest

@@ -14,7 +14,8 @@ import {
     reauthenticateWithCredential,
     deleteUser,
     verifyPasswordResetCode,
-    confirmPasswordReset
+    confirmPasswordReset,
+    updateEmail
 } from "firebase/auth";
 import { auth, db } from '@/lib/firebase';
 import { doc, setDoc, getDoc, deleteDoc, collection, getDocs, writeBatch } from 'firebase/firestore';
@@ -143,6 +144,26 @@ export const reauthenticate = async (email: string, password: string): Promise<v
     await reauthenticateWithCredential(auth.currentUser, credential);
 };
 
+export const updateUserEmail = async (newEmail: string, password: string): Promise<void> => {
+    const user = auth.currentUser;
+    if (!user || !user.email) throw new Error("No user is currently signed in.");
+    
+    try {
+        await reauthenticate(user.email, password);
+        await updateEmail(user, newEmail);
+        const userDocRef = doc(db, "users", user.uid);
+        await setDoc(userDocRef, { email: newEmail }, { merge: true });
+    } catch(error: any) {
+        console.error("Error updating email:", error);
+         if (error.code === 'auth/wrong-password') {
+            throw new Error("The password you entered is incorrect.");
+        } else if (error.code === 'auth/email-already-in-use') {
+            throw new Error("This email address is already in use by another account.");
+        }
+        throw new Error("Failed to update email. Please try again.");
+    }
+}
+
 export const deleteUserAccount = async (): Promise<void> => {
     const user = auth.currentUser;
     if (!user) throw new Error("No user is currently signed in.");
@@ -180,3 +201,5 @@ export const verifyResetCode = async (code: string) => {
 export const resetPassword = async (code: string, newPassword: string) => {
     return confirmPasswordReset(auth, code, newPassword);
 };
+
+    
