@@ -14,7 +14,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Eco Vest',
+  title: 'EcoVest',
   description: 'Your personal finance dashboard to track expenses, investments, and get AI-powered savings tips.',
 };
 
