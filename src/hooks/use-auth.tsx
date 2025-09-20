@@ -12,7 +12,9 @@ import {
     sendPasswordResetEmail,
     EmailAuthProvider,
     reauthenticateWithCredential,
-    deleteUser
+    deleteUser,
+    verifyPasswordResetCode,
+    confirmPasswordReset
 } from "firebase/auth";
 import { auth, db } from '@/lib/firebase';
 import { doc, setDoc, getDoc, deleteDoc, collection, getDocs, writeBatch } from 'firebase/firestore';
@@ -169,4 +171,12 @@ export const deleteUserAccount = async (): Promise<void> => {
         }
         throw new Error("An error occurred while deleting the account.");
     }
+};
+
+export const verifyResetCode = async (code: string) => {
+    return verifyPasswordResetCode(auth, code);
+};
+
+export const resetPassword = async (code: string, newPassword: string) => {
+    return confirmPasswordReset(auth, code, newPassword);
 };
