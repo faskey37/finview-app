@@ -8,3 +8,4 @@ import '@/ai/flows/generate-financial-health-score.ts';
 import '@/ai/flows/generate-subscription-insights.ts';
 import '@/ai/flows/negotiate-bill.ts';
 import '@/ai/flows/chat-with-assistant.ts';
+import '@/ai/flows/send-email.ts';

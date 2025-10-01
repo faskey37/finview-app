@@ -20,7 +20,8 @@ import {
   Users,
   ShieldCheck,
   PiggyBank,
-  BrainCircuit
+  BrainCircuit,
+  User as UserIcon,
 } from "lucide-react";
 import Logo from "@/components/logo";
 import { cn } from "@/lib/utils";
@@ -47,6 +48,7 @@ const navItems = [
 ];
 
 const secondaryNavItems = [
+    { href: "/dashboard/profile", icon: UserIcon, label: "Profile" },
     { href: "/dashboard/bill-negotiation", icon: ShieldCheck, label: "Bill Negotiation", isPro: true },
     { href: "/dashboard/settings", icon: Settings, label: "Settings" },
 ]

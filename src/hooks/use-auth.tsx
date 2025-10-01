@@ -15,7 +15,8 @@ import {
     deleteUser,
     verifyPasswordResetCode,
     confirmPasswordReset,
-    updateEmail
+    updateEmail,
+    sendEmailVerification
 } from "firebase/auth";
 import { auth, db } from '@/lib/firebase';
 import { doc, setDoc, getDoc, deleteDoc, collection, getDocs, writeBatch } from 'firebase/firestore';
@@ -45,24 +46,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (user) {
                 const userDocRef = doc(db, "users", user.uid);
                 const docSnap = await getDoc(userDocRef);
-                 const isDefaultPro = true; // Make all users pro by default for local dev
 
                 if (docSnap.exists()) {
-                    const existingData = docSnap.data() as UserData;
-                     if (isDefaultPro && !existingData.isPro) {
-                        await setDoc(userDocRef, { isPro: true }, { merge: true });
-                        setUserData({ ...existingData, isPro: true });
-                    } else {
-                        setUserData(existingData);
-                    }
+                    setUserData(docSnap.data() as UserData);
                 } else {
                      const newUser: UserData = {
                         uid: user.uid,
                         email: user.email || '',
                         displayName: user.displayName || 'New User',
                         currency: "USD",
-                        isPro: isDefaultPro, 
+                        isPro: false, 
                         roundUpForClimate: false,
+                        ecoPoints: 0,
+                        completedChallenges: {},
                         notifications: {
                             weeklySummary: false,
                             budgetAlerts: true,
@@ -119,9 +115,9 @@ export const signUp = async (email: string, password: string, displayName: strin
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
     await updateProfile(user, { displayName });
+    await sendEmailVerification(user);
     
     // The onAuthStateChanged listener in AuthProvider will handle creating the user doc.
-    // This removes the duplicate logic.
     
     return user;
 }
@@ -138,10 +134,18 @@ export const sendPasswordReset = async (email: string) => {
     return sendPasswordResetEmail(auth, email);
 }
 
+export const sendVerificationEmail = async () => {
+    const user = auth.currentUser;
+    if (!user) throw new Error("No user is currently signed in.");
+    await sendEmailVerification(user);
+};
+
+
 export const reauthenticate = async (email: string, password: string): Promise<void> => {
-    if (!auth.currentUser) throw new Error("No user is currently signed in.");
-    const credential = EmailAuthProvider.credential(email, password);
-    await reauthenticateWithCredential(auth.currentUser, credential);
+    const user = auth.currentUser;
+    if (!user || !user.email) throw new Error("No user is currently signed in.");
+    const credential = EmailAuthProvider.credential(user.email, password);
+    await reauthenticateWithCredential(user, credential);
 };
 
 export const updateUserEmail = async (newEmail: string, password: string): Promise<void> => {
@@ -159,40 +163,55 @@ export const updateUserEmail = async (newEmail: string, password: string): Promi
             throw new Error("The password you entered is incorrect.");
         } else if (error.code === 'auth/email-already-in-use') {
             throw new Error("This email address is already in use by another account.");
+        } else if (error.code === 'auth/operation-not-allowed') {
+            throw new Error("Email updates are not enabled. Please contact support.");
         }
         throw new Error("Failed to update email. Please try again.");
     }
 }
 
 export const deleteUserAccount = async (): Promise<void> => {
-    const user = auth.currentUser;
-    if (!user) throw new Error("No user is currently signed in.");
+  const user = auth.currentUser;
+  if (!user) throw new Error('No user is currently signed in.');
 
-    try {
-        const userDocRef = doc(db, 'users', user.uid);
-        
-        const collectionsToDelete = ['transactions', 'accounts', 'budgets', 'goals', 'investments', 'recurring'];
-        for (const subcollection of collectionsToDelete) {
-            const subcollectionRef = collection(db, 'users', user.uid, subcollection);
-            const querySnapshot = await getDocs(subcollectionRef);
-            const batch = writeBatch(db);
-            querySnapshot.forEach((doc) => {
-                batch.delete(doc.ref);
-            });
-            await batch.commit();
-        }
+  try {
+    const userDocRef = doc(db, 'users', user.uid);
 
-        await deleteDoc(userDocRef);
-        await deleteUser(user);
-
-    } catch (error) {
-        console.error("Error deleting user account:", error);
-        if ((error as any).code === 'auth/requires-recent-login') {
-             throw new Error("This is a sensitive operation. Please log in again before deleting your account.");
-        }
-        throw new Error("An error occurred while deleting the account.");
+    // Delete subcollections
+    const collectionsToDelete = [
+      'transactions',
+      'accounts',
+      'budgets',
+      'goals',
+      'investments',
+      'recurring',
+    ];
+    for (const subcollection of collectionsToDelete) {
+      const subcollectionRef = collection(db, 'users', user.uid, subcollection);
+      const querySnapshot = await getDocs(subcollectionRef);
+      const batch = writeBatch(db);
+      querySnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
     }
+
+    // Delete the user document itself
+    await deleteDoc(userDocRef);
+
+    // Finally, delete the user from Firebase Auth
+    await deleteUser(user);
+  } catch (error: any) {
+    console.error('Error deleting user account:', error);
+    if (error.code === 'auth/requires-recent-login') {
+      throw new Error(
+        'This is a sensitive operation. Please log in again before deleting your account.'
+      );
+    }
+    throw new Error('An error occurred while deleting the account.');
+  }
 };
+
 
 export const verifyResetCode = async (code: string) => {
     return verifyPasswordResetCode(auth, code);

@@ -13,6 +13,12 @@ import type { Footprint } from "@/lib/types"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 import { useAuth } from "@/hooks/use-auth"
 import type { GenerateCarbonFootprintOutput } from "@/ai/flows/generate-carbon.footprint"
+import { getDailyChallenge } from "@/lib/challenges"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import { useToast } from "@/hooks/use-toast"
+import { format } from "date-fns"
+
 
 const chartConfig = {
   co2: {
@@ -23,12 +29,48 @@ const chartConfig = {
 
 export default function EcoPage() {
     const { transactions, loading: transactionsLoading } = useTransactions()
-    const { isPro } = useAuth();
+    const { isPro, userData, updateUserData } = useAuth();
     const router = useRouter();
+    const { toast } = useToast();
+    
     const [analysis, setAnalysis] = React.useState<GenerateCarbonFootprintOutput | null>(null)
     const [isGenerating, setIsGenerating] = React.useState(false)
     const [error, setError] = React.useState<string | null>(null)
     
+    const dailyChallenge = getDailyChallenge();
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const isChallengeCompleted = userData?.completedChallenges?.[today] || false;
+
+
+    const handleCompleteChallenge = async () => {
+        if (isChallengeCompleted || !userData) return;
+
+        const currentPoints = userData.ecoPoints || 0;
+        const newPoints = currentPoints + dailyChallenge.points;
+        
+        const currentCompleted = userData.completedChallenges || {};
+        const newCompleted = { ...currentCompleted, [today]: true };
+
+        try {
+            await updateUserData({
+                ecoPoints: newPoints,
+                completedChallenges: newCompleted
+            });
+            toast({
+                title: "Challenge Complete! 🎉",
+                description: `You've earned ${dailyChallenge.points} points!`,
+            });
+        } catch (e) {
+            console.error(e);
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Failed to save challenge progress.",
+            });
+        }
+    };
+
+
     const handleGenerateFootprint = async () => {
         if (!isPro) {
             router.push("/dashboard/upgrade");
@@ -62,9 +104,43 @@ export default function EcoPage() {
       <div className="flex items-center justify-between">
         <div className="space-y-1">
             <h1 className="text-3xl font-bold tracking-tight">Impact Hub</h1>
-            <p className="text-muted-foreground">Understand your environmental impact and discover sustainable alternatives.</p>
+            <p className="text-muted-foreground">Understand your environmental impact and take action.</p>
         </div>
       </div>
+      
+        <Card>
+            <CardHeader>
+                <CardTitle className="text-lg">Today's Eco-Challenge</CardTitle>
+                <CardDescription>Complete daily challenges to earn points and build sustainable habits.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex items-start gap-6 rounded-lg bg-muted/50 p-6">
+                <dailyChallenge.icon className="h-10 w-10 text-green-600 flex-shrink-0 mt-1" />
+                <div className="flex-1">
+                    <h3 className="font-bold">{dailyChallenge.title}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">{dailyChallenge.description}</p>
+                </div>
+                <div className="text-right">
+                    <p className="font-bold text-lg text-primary">+{dailyChallenge.points} PTS</p>
+                </div>
+            </CardContent>
+            <CardFooter className="flex justify-end items-center gap-4 pt-4">
+                 <div className="flex items-center space-x-2">
+                    <Checkbox
+                        id="complete-challenge"
+                        checked={isChallengeCompleted}
+                        onCheckedChange={handleCompleteChallenge}
+                        disabled={isChallengeCompleted}
+                    />
+                    <Label
+                        htmlFor="complete-challenge"
+                        className={isChallengeCompleted ? "text-muted-foreground line-through" : ""}
+                    >
+                       {isChallengeCompleted ? "Completed!" : "Mark as Complete"}
+                    </Label>
+                </div>
+            </CardFooter>
+        </Card>
+
 
        <Card>
           <CardHeader>

@@ -38,19 +38,24 @@ export type Account = {
 }
 
 export type UserData = {
-    photoURL: string;
-    roundUpForClimate: boolean;
-    isPro: any;
     uid: string;
     email: string;
     displayName: string;
+    photoURL?: string;
     currency?: string;
+    isPro?: boolean;
     notifications?: {
-        pushNotifications: any;
-        pushNotifications: any;
         weeklySummary?: boolean;
         budgetAlerts?: boolean;
-    }
+        pushNotifications?: {
+            unusualTransactions?: boolean;
+            lowBalance?: boolean;
+            goalMilestones?: boolean;
+        }
+    },
+    roundUpForClimate?: boolean;
+    ecoPoints?: number;
+    completedChallenges?: { [date: string]: boolean };
 }
 
 export type Investment = {
@@ -74,7 +79,6 @@ export type Goal = {
 }
 
 export type RecurringTransaction = {
-    suggestion: any;
     id: string;
     description: string;
     amount: number;
@@ -83,6 +87,7 @@ export type RecurringTransaction = {
     frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
     startDate: string;
     userId?: string;
+    suggestion?: string;
 }
 
 export type NewsArticle = {
@@ -99,3 +104,46 @@ export type Footprint = {
     category: string;
     co2: number;
 }
+
+export type Subscription = {
+    id: string;
+    name: string;
+    monthlyCost: number;
+    category: string;
+    suggestion?: string;
+}
+
+export type SubscriptionInsight = {
+    id: string;
+    name: string;
+    monthlyCost: number;
+    category: string;
+    suggestion: string;
+}
+
+export type Asset = {
+    name: string;
+    value: number;
+    type: 'Cash' | 'Investment';
+}
+
+export type Liability = {
+    name: string;
+    value: number;
+    type: 'Credit Card' | 'Loan';
+}
+
+export type BenchmarkData = {
+    category: string;
+    userSpending: number;
+    averageSpending: number;
+}
+
+export interface EcoChallenge {
+  id: string;
+  title: string;
+  description: string;
+  points: number;
+  icon: React.ElementType;
+}
+    
