@@ -16,7 +16,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DashboardSidebar } from "./sidebar";
 import Link from "next/link";
-import { useAuth, signOutUser } from "@/hooks/use-auth";
+import { useAuth, signOutUser } from "@/hooks/use-auth.tsx";
 import { useRouter } from "next/navigation";
 import { useNotifications } from "@/hooks/use-notifications";
 import { formatDistanceToNow } from "date-fns";
@@ -121,7 +121,7 @@ export function DashboardHeader() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
              <DropdownMenuItem asChild>
-              <Link href="/dashboard/settings"><UserIcon/>Profile</Link>
+              <Link href="/dashboard/profile"><UserIcon/>Profile</Link>
             </DropdownMenuItem>
              {!userData?.isPro && (
               <DropdownMenuItem asChild>
@@ -131,7 +131,7 @@ export function DashboardHeader() {
              <DropdownMenuItem><LifeBuoy/>Support</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}><LogOut/>Logout</DropdownMenuItem>
-          </DropdownMenuContent>
+          </DropdownMenuContent> 
         </DropdownMenu>
       </div>
     </header>
