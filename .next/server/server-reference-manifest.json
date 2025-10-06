@@ -10,10 +10,12 @@
     },
     "8b66da01baa2fa995b480f845836e18a9a3cc131": {
       "workers": {
-        "app/dashboard/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cgenerate-savings-tips.ts%22%2C%5B%22generateSavingsTips%22%5D%5D%2C%5B%22D%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cgenerate-financial-health-score.ts%22%2C%5B%22generateFinancialHealthScore%22%5D%5D%5D&encryptionKey=8VMPBkvsHSgSAbtQPMY19YmZJwz%2FPe%2BSu3MP0qzjleI%3D&__client_imported__=true!"
+        "app/dashboard/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cgenerate-savings-tips.ts%22%2C%5B%22generateSavingsTips%22%5D%5D%2C%5B%22D%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cgenerate-financial-health-score.ts%22%2C%5B%22generateFinancialHealthScore%22%5D%5D%5D&encryptionKey=8VMPBkvsHSgSAbtQPMY19YmZJwz%2FPe%2BSu3MP0qzjleI%3D&__client_imported__=true!",
+        "app/dashboard/score/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cgenerate-financial-health-score.ts%22%2C%5B%22generateFinancialHealthScore%22%5D%5D%5D&encryptionKey=8VMPBkvsHSgSAbtQPMY19YmZJwz%2FPe%2BSu3MP0qzjleI%3D&__client_imported__=true!"
       },
       "layer": {
-        "app/dashboard/page": "action-browser"
+        "app/dashboard/page": "action-browser",
+        "app/dashboard/score/page": "action-browser"
       }
     },
     "5824239c96210bdc78f85a6b1dca1d02f5ea1418": {
@@ -22,6 +24,14 @@
       },
       "layer": {
         "app/dashboard/eco/page": "action-browser"
+      }
+    },
+    "5b208f3ff6995d86bd3ff2a0c0d09f96d92b2dec": {
+      "workers": {
+        "app/dashboard/news/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cservices%5C%5Cnews.ts%22%2C%5B%22getFinancialNews%22%5D%5D%5D&encryptionKey=8VMPBkvsHSgSAbtQPMY19YmZJwz%2FPe%2BSu3MP0qzjleI%3D&__client_imported__=true!"
+      },
+      "layer": {
+        "app/dashboard/news/page": "action-browser"
       }
     },
     "72b52bf1b2fe2c8e975939409b2cb37bb42877a5": {

@@ -1,5 +1,9 @@
 {
-  "/dashboard/page": "app/dashboard/page.js",
-  "/dashboard/eco/page": "app/dashboard/eco/page.js",
-  "/dashboard/profile/page": "app/dashboard/profile/page.js"
+  "/dashboard/calculators/page": "app/dashboard/calculators/page.js",
+  "/dashboard/profile/page": "app/dashboard/profile/page.js",
+  "/dashboard/transactions/page": "app/dashboard/transactions/page.js",
+  "/dashboard/accounts/page": "app/dashboard/accounts/page.js",
+  "/dashboard/net-worth/page": "app/dashboard/net-worth/page.js",
+  "/dashboard/score/page": "app/dashboard/score/page.js",
+  "/dashboard/goals/page": "app/dashboard/goals/page.js"
 }

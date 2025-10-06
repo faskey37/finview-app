@@ -16,7 +16,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DashboardSidebar } from "./sidebar";
 import Link from "next/link";
-import { useAuth, signOutUser } from "@/hooks/use-auth.tsx";
+import { useAuth, signOutUser } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { useNotifications } from "@/hooks/use-notifications";
 import { formatDistanceToNow } from "date-fns";
