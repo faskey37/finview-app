@@ -31,7 +31,7 @@ export const getTransactions = (callback: (transactions: Transaction[]) => void)
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const transactions: Transaction[] = [];
         querySnapshot.forEach((doc) => {
-        transactions.push({ id: doc.id, ...doc.data() } as Transaction);
+        transactions.push({  ...doc.data(),id: doc.id, } as Transaction);
         });
         callback(transactions);
     }, (error) => {

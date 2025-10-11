@@ -13,7 +13,7 @@ export function useTransactions() {
 
   useEffect(() => {
     let unsubscribeSnap: (() => void) | null = null;
-    
+    console.log('transactions ', transactions)
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
         setLoading(true);
