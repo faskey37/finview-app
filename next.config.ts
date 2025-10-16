@@ -31,7 +31,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: ''
+        hostname: 'example.com'
       },
       {
         protocol: 'https',
