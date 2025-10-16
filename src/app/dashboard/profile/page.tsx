@@ -425,16 +425,7 @@ export default function ProfilePage() {
                     </Button>
                 </div>
             </div>
-            <div className="space-y-2 p-4 border rounded-lg">
-                <label className="text-sm font-medium leading-none">Test Email Notifications</label>
-                <div className="flex items-center justify-between gap-4">
-                    <p className="text-sm text-muted-foreground">Click to verify your email service is working.</p>
-                     <Button onClick={handleSendTestEmail} disabled={isSendingTestEmail} variant="outline">
-                       <Mail />
-                       {isSendingTestEmail ? "Sending..." : "Send Test Email"}
-                    </Button>
-                </div>
-            </div>
+          
             <div className="space-y-2 p-4 border rounded-lg">
                 <label className="text-sm font-medium leading-none">Monthly Summary</label>
                 <div className="flex items-center justify-between gap-4">
