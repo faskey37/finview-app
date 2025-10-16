@@ -25,8 +25,8 @@ export async function sendEmail({ to, subject, html }: EmailParams): Promise<voi
 
   if (!emailUser || !emailPass) {
     const message =
-      'Email service is not configured. Please ensure EMAIL_SERVER_USER and EMAIL_SERVER_PASSWORD (a Gmail App Password) are set in your .env file and restart the server.';
-    console.error(message);
+      'Email service is not configured. Please set EMAIL_SERVER_USER and EMAIL_SERVER_PASSWORD (a Gmail App Password) in your .env file and restart the server to enable this feature.';
+    console.warn(message);
     throw new Error(message);
   }
 
