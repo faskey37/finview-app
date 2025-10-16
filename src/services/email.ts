@@ -1,45 +1,53 @@
 
 'use server';
 
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
 interface EmailParams {
   to: string;
   subject: string;
-  text: string;
+  html: string;
 }
 
 /**
- * Sends an email using the Resend API.
+ * Sends an email using Nodemailer.
  * This function should only be called from a server-side environment (e.g., a Genkit flow).
+ * It uses Gmail as the transport service. For this to work, you must:
+ * 1. Set EMAIL_SERVER_USER (your Gmail address) in your .env file.
+ * 2. Set EMAIL_SERVER_PASSWORD (a Gmail App Password) in your .env file.
  *
  * @param {EmailParams} params - The email parameters.
- * @throws {Error} If the RESEND_API_KEY is not set or if the email fails to send.
+ * @throws {Error} If the email service is not configured or if the email fails to send.
  */
-export async function sendEmail({ to, subject, text }: EmailParams): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY;
+export async function sendEmail({ to, subject, html }: EmailParams): Promise<void> {
+  const emailUser = process.env.EMAIL_SERVER_USER;
+  const emailPass = process.env.EMAIL_SERVER_PASSWORD;
 
-  if (!apiKey) {
-    console.error('RESEND_API_KEY is not set.');
-    throw new Error('Email service is not configured. Please ensure RESEND_API_KEY is set in your .env file and restart the server.');
+  if (!emailUser || !emailPass) {
+    const message =
+      'Email service is not configured. Please ensure EMAIL_SERVER_USER and EMAIL_SERVER_PASSWORD (a Gmail App Password) are set in your .env file and restart the server.';
+    console.error(message);
+    throw new Error(message);
   }
 
-  const resend = new Resend(apiKey);
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: emailUser,
+      pass: emailPass,
+    },
+  });
+
+  const mailOptions = {
+    from: `"EcoVest" <${emailUser}>`,
+    to,
+    subject,
+    html,
+  };
 
   try {
-    const { data, error } = await resend.emails.send({
-      from: 'EcoVest <onboarding@resend.dev>', // Must be a verified domain in Resend. 'onboarding@resend.dev' is for testing.
-      to: [to],
-      subject: subject,
-      text: text,
-    });
-
-    if (error) {
-      console.error('Error sending email via Resend:', error);
-      throw new Error(`Failed to send email: ${error.message}`);
-    }
-
-    console.log('Email sent successfully:', data);
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Email sent successfully:', info.response);
   } catch (error) {
     console.error('An unexpected error occurred in sendEmail:', error);
     if (error instanceof Error) {
@@ -48,5 +56,3 @@ export async function sendEmail({ to, subject, text }: EmailParams): Promise<voi
     throw new Error('An unexpected error occurred while trying to send the email.');
   }
 }
-
-    

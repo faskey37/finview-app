@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Sparkles, Edit, CalendarIcon, BadgeCheck, Trash2, AlertCircle, Mail } from "lucide-react";
+import { Sparkles, Edit, CalendarIcon, BadgeCheck, Trash2, AlertCircle, Mail, Send } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +38,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import { sendEmail } from "@/ai/flows/send-email";
+import { generateMonthlySummary } from "@/ai/flows/generate-monthly-summary";
+import { useTransactions } from "@/hooks/use-transactions";
+import { useBudgets } from "@/hooks/use-budgets";
+import { useGoals } from "@/hooks/use-goals";
 
 const profileSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -63,10 +67,15 @@ export default function ProfilePage() {
   const [isSendingReset, setIsSendingReset] = React.useState(false);
   const [isSendingVerification, setIsSendingVerification] = React.useState(false);
   const [isSendingTestEmail, setIsSendingTestEmail] = React.useState(false);
+  const [isSendingSummary, setIsSendingSummary] = React.useState(false);
   const [photoDialogOpen, setPhotoDialogOpen] = React.useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = React.useState(false);
   const [accountAge, setAccountAge] = React.useState('');
   const [isDeleting, setIsDeleting] = React.useState(false);
+
+  const { transactions } = useTransactions();
+  const { budgets } = useBudgets();
+  const { goals } = useGoals();
 
   const profileForm = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
@@ -183,7 +192,7 @@ export default function ProfilePage() {
       const result = await sendEmail({
         to: user.email,
         subject: "Test Email from EcoVest",
-        text: "This is a test email to confirm that your email service is configured correctly.",
+        html: "This is a test email to confirm that your email service is configured correctly.",
       });
        if (result.success) {
         toast({ title: "Test Email Sent", description: "Please check your inbox." });
@@ -194,6 +203,34 @@ export default function ProfilePage() {
       toast({ variant: "destructive", title: "Error: Email Not Sent", description: error.message });
     } finally {
       setIsSendingTestEmail(false);
+    }
+  }
+
+  async function handleSendSummary() {
+    if (!user?.email) return;
+    setIsSendingSummary(true);
+    try {
+      const summaryResult = await generateMonthlySummary({
+        transactions: JSON.stringify(transactions),
+        budgets: JSON.stringify(budgets),
+        goals: JSON.stringify(goals),
+      });
+
+      const emailResult = await sendEmail({
+        to: user.email,
+        subject: "Your Monthly Financial Summary from EcoVest",
+        html: summaryResult.summaryHtml,
+      });
+
+      if (emailResult.success) {
+        toast({ title: "Monthly Summary Sent", description: "Check your inbox for your AI-generated summary." });
+      } else {
+        throw new Error(emailResult.message);
+      }
+    } catch (error: any) {
+       toast({ variant: "destructive", title: "Error", description: error.message || "Could not send summary." });
+    } finally {
+      setIsSendingSummary(false);
     }
   }
 
@@ -398,6 +435,16 @@ export default function ProfilePage() {
                     </Button>
                 </div>
             </div>
+            <div className="space-y-2 p-4 border rounded-lg">
+                <label className="text-sm font-medium leading-none">Monthly Summary</label>
+                <div className="flex items-center justify-between gap-4">
+                    <p className="text-sm text-muted-foreground">Send an AI-generated summary of your monthly activity.</p>
+                     <Button onClick={handleSendSummary} disabled={isSendingSummary} variant="outline">
+                       <Send />
+                       {isSendingSummary ? "Sending..." : "Send Summary Email"}
+                    </Button>
+                </div>
+            </div>
         </CardContent>
         <CardFooter>
              <AlertDialog>
@@ -446,5 +493,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-    
