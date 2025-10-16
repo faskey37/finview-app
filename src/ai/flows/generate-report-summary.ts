@@ -16,6 +16,7 @@ const GenerateReportSummaryInputSchema = z.object({
   reportData: z
     .string()
     .describe('A JSON string of the aggregated report data, including spending trends and net worth changes.'),
+  currency: z.string().describe('The currency code for all financial figures (e.g., USD, EUR, JPY).'),
 });
 export type GenerateReportSummaryInput = z.infer<typeof GenerateReportSummaryInputSchema>;
 
@@ -36,8 +37,8 @@ const prompt = ai.definePrompt({
   name: 'generateReportSummaryPrompt',
   input: { schema: GenerateReportSummaryInputSchema },
   output: { schema: GenerateReportSummaryOutputSchema },
-
-  prompt: `You are a financial analyst reviewing a user's monthly performance report. Your goal is to provide a brief, easy-to-understand summary of the key insights.
+ 
+  prompt: `You are a financial analyst reviewing a user's monthly performance report. Your goal is to provide a brief, easy-to-understand summary of the key insights. All monetary values are in {{{currency}}}.
 
 Analyze the following report data:
 {{{reportData}}}
@@ -48,7 +49,7 @@ Based on the data, provide a summary that includes:
 3.  A comment on their net worth progression.
 4.  One actionable piece of advice based on these trends.
 
-Keep the tone encouraging and focus on the most important information. Format the output as a Markdown string.`,
+Keep the tone encouraging and focus on the most important information. Format the output as a Markdown string. Ensure all monetary values are mentioned with the correct currency ({{{currency}}}).`,
 });
 
 const generateReportSummaryFlow = ai.defineFlow(

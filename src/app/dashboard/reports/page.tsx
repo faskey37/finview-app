@@ -94,7 +94,7 @@ export default function ReportsPage() {
     const { investments, loading: iLoading } = useInvestments();
     const { isPro } = useAuth();
     const router = useRouter();
-    const { formatCurrency } = useCurrency();
+    const { formatCurrency, currency } = useCurrency();
 
     const [selectedCategory, setSelectedCategory] = React.useState<string | null>(null);
     const [summary, setSummary] = React.useState<string | null>(null);
@@ -122,7 +122,10 @@ export default function ReportsPage() {
         setIsGenerating(true);
         setError(null);
         try {
-            const result = await generateReportSummary({ reportData: JSON.stringify(monthlyData) });
+            const result = await generateReportSummary({ 
+                reportData: JSON.stringify(monthlyData),
+                currency: currency,
+            });
             setSummary(result.summary);
         } catch (e) {
             console.error(e);
