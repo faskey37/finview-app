@@ -22,17 +22,19 @@ import {
   PiggyBank,
   BrainCircuit,
   User as UserIcon,
+  BarChart,
 } from "lucide-react";
 import Logo from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltips";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 import { useSidebar } from "@/hooks/use-sidebar";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/dashboard/assistant", icon: BrainCircuit, label: "AI Assistant", isPro: true },
+  { href: "/dashboard/reports", icon: BarChart, label: "Reports" },
   { href: "/dashboard/transactions", icon: ArrowLeftRight, label: "Transactions" },
   { href: "/dashboard/accounts", icon: Wallet, label: "Accounts" },
   { href: "/dashboard/net-worth", icon: PiggyBank, label: "Net Worth" },

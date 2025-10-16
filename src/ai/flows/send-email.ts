@@ -2,7 +2,7 @@
 'use server';
 
 /**
- * @fileOverview A Genkit flow for sending emails using Nodemailer.
+ * @fileOverview A Genkit flow for sending emails.
  *
  * This file defines a flow that can be used to send transactional emails
  * from the application using an external email service.
@@ -16,7 +16,7 @@ import { sendEmail as send } from '@/services/email';
 const SendEmailInputSchema = z.object({
   to: z.string().email().describe('The recipient email address.'),
   subject: z.string().describe('The subject line of the email.'),
-  html: z.string().describe('The HTML content of the email.'),
+  text: z.string().describe('The plain text content of the email.'),
 });
 
 export type SendEmailInput = z.infer<typeof SendEmailInputSchema>;
@@ -41,7 +41,7 @@ const sendEmailFlow = ai.defineFlow(
       await send({
         to: input.to,
         subject: input.subject,
-        html: input.html,
+        text: input.text,
       });
       return { success: true, message: 'Email sent successfully.' };
     } catch (error: any) {
