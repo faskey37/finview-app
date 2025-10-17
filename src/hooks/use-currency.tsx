@@ -20,6 +20,7 @@ interface CurrencyContextProps {
   setCurrency: (currency: string) => void;
   formatCurrency: (amount: number) => string;
   formatCompactNumber: (amount: number) => string;
+  convertToBaseCurrency: (amount: number, fromCurrency: string) => number;
 }
 
 const CurrencyContext = createContext<CurrencyContextProps | undefined>(undefined);
@@ -35,9 +36,18 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   }, [userData]);
 
   const convertAmount = (amount: number): number => {
+    // This assumes the base amount stored in DB is always USD
     const rate = EXCHANGE_RATES[currency] || 1;
     return amount * rate;
   }
+  
+  const convertToBaseCurrency = (amount: number, fromCurrency: string): number => {
+    const rate = EXCHANGE_RATES[fromCurrency] || 1;
+    if (rate === 0) return amount; // Avoid division by zero
+    // Convert the amount from the user's currency back to the base currency (USD)
+    return amount / rate;
+  }
+
 
   const formatCurrency = (amount: number) => {
     const convertedAmount = convertAmount(amount);
@@ -58,7 +68,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <CurrencyContext.Provider value={{ currency, setCurrency, formatCurrency, formatCompactNumber }}>
+    <CurrencyContext.Provider value={{ currency, setCurrency, formatCurrency, formatCompactNumber, convertToBaseCurrency }}>
       {children}
     </CurrencyContext.Provider>
   );

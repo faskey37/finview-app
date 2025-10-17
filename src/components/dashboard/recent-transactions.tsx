@@ -81,7 +81,7 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
   const [addDialogOpen, setAddDialogOpen] = React.useState(false)
   const [isDeleting, setIsDeleting] = React.useState(false)
   const { toast } = useToast()
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency, currency, convertToBaseCurrency } = useCurrency();
 
   const form = useForm<z.infer<typeof transactionSchema>>({
     resolver: zodResolver(transactionSchema),
@@ -95,8 +95,12 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
 
   async function handleAddTransaction(values: z.infer<typeof transactionSchema>) {
     try {
+      // Convert the user-entered amount from their current currency back to the base currency (USD) before saving.
+      const baseAmount = convertToBaseCurrency(values.amount, currency);
+
       await addTransaction({
         ...values,
+        amount: baseAmount, // Save the base amount
         date: new Date().toLocaleDateString('en-CA')
       });
       form.reset();
@@ -185,7 +189,7 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
                   name="amount"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Amount</FormLabel>
+                      <FormLabel>Amount (in {currency})</FormLabel>
                       <FormControl>
                         <Input type="number" step="0.01" {...field} />
                       </FormControl>
