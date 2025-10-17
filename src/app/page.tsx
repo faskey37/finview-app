@@ -85,6 +85,10 @@ export default function Home() {
                             <FcGoogle className="mr-2 h-5 w-5" />
                             Sign in with Google
                         </Button>
+                         <Button variant="outline" onClick={() => setAuthMode('phone')}>
+                            <Phone className="mr-2 h-5 w-5" />
+                            Sign in with Phone
+                        </Button>
                     </div>
                     <div className="my-4 flex items-center">
                         <Separator className="flex-1" />
