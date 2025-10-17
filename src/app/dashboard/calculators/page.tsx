@@ -458,7 +458,7 @@ export default function CalculatorsPage() {
                 <CardHeader>
                     <CardTitle className="text-lg">Income Tax Calculator</CardTitle>
                     <CardDescription>Get a simplified estimate of your annual income tax.</CardDescription>
-                </Header>
+                </CardHeader>
                 <CardContent>
                     <IncomeTaxCalculator />
                 </CardContent>
