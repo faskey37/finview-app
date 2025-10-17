@@ -16,10 +16,18 @@ import {
     verifyPasswordResetCode,
     confirmPasswordReset,
     updateEmail,
-    sendEmailVerification
+    sendEmailVerification,
+    GoogleAuthProvider,
+    signInWithPopup,
+    PhoneAuthProvider,
+    RecaptchaVerifier,
+    signInWithPhoneNumber,
+    ConfirmationResult,
+    linkWithPhoneNumber,
+    updatePhoneNumber
 } from "firebase/auth";
 import { auth, db } from '@/lib/firebase';
-import { doc, setDoc, getDoc, deleteDoc, collection, getDocs, writeBatch } from 'firebase/firestore';
+import { doc, setDoc, getDoc, deleteDoc, collection, getDocs, writeBatch, onSnapshot } from 'firebase/firestore';
 import type { UserData } from '@/lib/types';
 
 
@@ -34,6 +42,33 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({ user: null, userData: null, loading: true, isPro: false, updateUserData: async () => {}, updateAuthUserProfile: async () => {} });
 
+// Helper to initialize reCAPTCHA
+const getRecaptchaVerifier = (containerId: string) => {
+    if (typeof window !== 'undefined' && (window as any).recaptchaVerifier) {
+        // To avoid re-rendering issues, especially in React Strict Mode
+        const verifier = (window as any).recaptchaVerifier;
+        const container = document.getElementById(containerId);
+        if (container && container.innerHTML === '') {
+            verifier.render();
+        }
+        return verifier;
+    }
+    const recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
+      'size': 'invisible',
+      'callback': (response: any) => {
+        // reCAPTCHA solved, allow signInWithPhoneNumber to continue.
+      },
+      'expired-callback': () => {
+        // Response expired. Ask user to solve reCAPTCHA again.
+      }
+    });
+    if (typeof window !== 'undefined') {
+        (window as any).recaptchaVerifier = recaptchaVerifier;
+    }
+    return recaptchaVerifier;
+}
+
+
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [userData, setUserData] = useState<UserData | null>(null);
@@ -42,44 +77,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            setUser(user);
+            setLoading(true);
             if (user) {
+                setUser(user);
                 const userDocRef = doc(db, "users", user.uid);
-                const docSnap = await getDoc(userDocRef);
-
-                if (docSnap.exists()) {
-                    setUserData(docSnap.data() as UserData);
-                } else {
-                     const newUser: UserData = {
-                        uid: user.uid,
-                        email: user.email || '',
-                        displayName: user.displayName || 'New User',
-                        currency: "USD",
-                        isPro: false, 
-                        roundUpForClimate: false,
-                        ecoPoints: 0,
-                        completedChallenges: {},
-                        notifications: {
-                            weeklySummary: false,
-                            budgetAlerts: true,
-                            pushNotifications: {
-                                unusualTransactions: true,
-                                lowBalance: true,
-                                goalMilestones: true,
+                
+                // Use onSnapshot for real-time updates of user data
+                const unsubUserData = onSnapshot(userDocRef, async (docSnap) => {
+                    if (docSnap.exists()) {
+                        setUserData(docSnap.data() as UserData);
+                    } else {
+                        // This handles new sign-ups (Google, Phone, or Email)
+                        const newUser: UserData = {
+                            uid: user.uid,
+                            email: user.email || '',
+                            displayName: user.displayName || 'New User',
+                            photoURL: user.photoURL || '',
+                            currency: "USD",
+                            isPro: false, 
+                            roundUpForClimate: false,
+                            ecoPoints: 0,
+                            completedChallenges: {},
+                            notifications: {
+                                weeklySummary: false,
+                                budgetAlerts: true,
+                                pushNotifications: {
+                                    unusualTransactions: true,
+                                    lowBalance: true,
+                                    goalMilestones: true,
+                                }
                             }
-                        }
-                    };
-                     await setDoc(userDocRef, newUser);
-                     setUserData(newUser);
-                }
+                        };
+                        await setDoc(userDocRef, newUser);
+                        setUserData(newUser);
+                    }
+                    setLoading(false);
+                });
+                return () => unsubUserData();
             } else {
+                setUser(null);
                 setUserData(null);
+                setLoading(false);
             }
-            setLoading(false);
         });
 
         return () => unsubscribe();
     }, []);
+
 
     const updateUserData = async (data: Partial<UserData>) => {
         if (!user) return;
@@ -91,7 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const updateAuthUserProfile = async (profile: { displayName?: string, photoURL?: string }) => {
         if (!auth.currentUser) throw new Error("No user logged in to update.");
         await updateProfile(auth.currentUser, profile);
-        setUser({ ...auth.currentUser } as User); 
+        // The onAuthStateChanged listener will handle the user state update
         if(profile.displayName) {
              await updateUserData({ displayName: profile.displayName });
         }
@@ -111,21 +155,53 @@ export const useAuth = () => {
     return useContext(AuthContext);
 }
 
+// --- Email/Password ---
 export const signUp = async (email: string, password: string, displayName: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-    await updateProfile(user, { displayName });
-    await sendEmailVerification(user);
-    
-    // The onAuthStateChanged listener in AuthProvider will handle creating the user doc.
-    
-    return user;
+    await updateProfile(userCredential.user, { displayName });
+    await sendEmailVerification(userCredential.user);
+    // The onAuthStateChanged listener in AuthProvider handles creating the user doc.
+    return userCredential.user;
 }
 
 export const signIn = async (email: string, password: string) => {
     return signInWithEmailAndPassword(auth, email, password);
 }
 
+// --- Google Sign-In ---
+export const signInWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    const result = await signInWithPopup(auth, provider);
+    // The onAuthStateChanged listener will handle user data creation if it's a new user.
+    return result;
+}
+
+// --- Phone Sign-In ---
+export const sendPhoneNumberVerification = (phoneNumber: string) => {
+    const appVerifier = getRecaptchaVerifier('recaptcha-container');
+    return signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+}
+
+export const verifyOtp = async (confirmationResult: ConfirmationResult, otp: string) => {
+    const result = await confirmationResult.confirm(otp);
+    // onAuthStateChanged will handle the rest.
+    return result.user;
+}
+
+// --- Phone Number Linking ---
+export const linkPhoneNumber = (phoneNumber: string) => {
+    const user = auth.currentUser;
+    if (!user) throw new Error("No user is currently signed in.");
+    const appVerifier = getRecaptchaVerifier('recaptcha-container-profile');
+    return linkWithPhoneNumber(user, phoneNumber, appVerifier);
+};
+
+export const verifyOtpForLinking = async (confirmationResult: ConfirmationResult, otp: string) => {
+    return confirmationResult.confirm(otp);
+};
+
+
+// --- Account Management ---
 export const signOutUser = async () => {
     return signOut(auth);
 }
@@ -139,7 +215,6 @@ export const sendVerificationEmail = async () => {
     if (!user) throw new Error("No user is currently signed in.");
     await sendEmailVerification(user);
 };
-
 
 export const reauthenticate = async (email: string, password: string): Promise<void> => {
     const user = auth.currentUser;
@@ -212,7 +287,6 @@ export const deleteUserAccount = async (): Promise<void> => {
   }
 };
 
-
 export const verifyResetCode = async (code: string) => {
     return verifyPasswordResetCode(auth, code);
 };
@@ -220,5 +294,3 @@ export const verifyResetCode = async (code: string) => {
 export const resetPassword = async (code: string, newPassword: string) => {
     return confirmPasswordReset(auth, code, newPassword);
 };
-
-    
