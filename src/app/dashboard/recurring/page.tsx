@@ -80,7 +80,7 @@ export default function RecurringPage() {
             <DialogHeader><DialogTitle>Add Recurring Transaction</DialogTitle><DialogDescription>Set up an automatic, recurring income or expense.</DialogDescription></DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(handleAddRecurring)} className="space-y-4 py-4">
-                 <FormField control={form.control} name="description" render={({ field }) => ( <FormItem><FormLabel>Description</FormLabel><FormControl><Input placeholder="e.g. Netflix Subscription" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                 <FormField control={form.control} name="description" render={({ field }) => ( <FormItem><FormLabel>Description</FormLabel><FormControl><Input placeholder="e.g. Netflix Subscription" {...field} maxLength={30} /></FormControl><FormMessage /></FormItem> )} />
                  <FormField control={form.control} name="amount" render={({ field }) => ( <FormItem><FormLabel>Amount</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem> )} />
                  <FormField control={form.control} name="type" render={({ field }) => (
                     <FormItem><FormLabel>Type</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="expense">Expense</SelectItem><SelectItem value="income">Income</SelectItem></SelectContent></Select><FormMessage /></FormItem>
@@ -116,7 +116,7 @@ export default function RecurringPage() {
                         {recurring.map(item => (
                             <TableRow key={item.id}>
                                 <TableCell className="font-medium">{item.description}</TableCell>
-                                <TableCell><Badge variant="outline">{item.category}</Badge></TableCell>
+                                <TableCell><Badge variant={item.type === 'income' ? 'success' : 'secondary'}>{item.category}</Badge></TableCell>
                                 <TableCell className="capitalize">{item.frequency}</TableCell>
                                 <TableCell className={`text-right font-semibold ${item.type === 'income' ? 'text-primary' : 'text-destructive'}`}>{item.type === 'expense' && '-'}{formatCurrency(item.amount)}</TableCell>
                                 <TableCell className="text-right">

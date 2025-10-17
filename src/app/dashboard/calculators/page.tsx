@@ -57,7 +57,7 @@ const taxBrackets = [
 
 
 function LoanCalculator() {
-    const { formatCurrency } = useCurrency();
+    const { formatCurrency, formatCompactNumber } = useCurrency();
     const [monthlyPayment, setMonthlyPayment] = React.useState<number | null>(null)
     const [totalPayment, setTotalPayment] = React.useState<number | null>(null)
     const [totalInterest, setTotalInterest] = React.useState<number | null>(null)
@@ -140,11 +140,11 @@ function LoanCalculator() {
             </div>
                 <div className="flex justify-between items-center pt-2">
                 <span className="text-muted-foreground">Total Payment</span>
-                <span className="font-semibold">{totalPayment !== null ? formatCurrency(totalPayment) : '-'}</span>
+                <span className="font-semibold">{totalPayment !== null ? formatCompactNumber(totalPayment) : '-'}</span>
             </div>
                 <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Total Interest Paid</span>
-                <span className="font-semibold">{totalInterest !== null ? formatCurrency(totalInterest) : '-'}</span>
+                <span className="font-semibold">{totalInterest !== null ? formatCompactNumber(totalInterest) : '-'}</span>
             </div>
         </div>
     </div>
@@ -152,7 +152,7 @@ function LoanCalculator() {
 }
 
 function SipCalculator() {
-    const { formatCurrency } = useCurrency();
+    const { formatCurrency, formatCompactNumber } = useCurrency();
     const [futureValue, setFutureValue] = React.useState<number | null>(null);
     const [totalInvested, setTotalInvested] = React.useState<number | null>(null);
     const [totalGains, setTotalGains] = React.useState<number | null>(null);
@@ -222,15 +222,15 @@ function SipCalculator() {
                 <h3 className="text-lg font-semibold text-center mb-4">Investment Projection</h3>
                 <div className="flex justify-between items-center border-b pb-2">
                     <span className="text-muted-foreground">Future Value</span>
-                    <span className="text-2xl font-bold text-primary">{futureValue !== null ? formatCurrency(futureValue) : '-'}</span>
+                    <span className="text-2xl font-bold text-primary">{futureValue !== null ? formatCompactNumber(futureValue) : '-'}</span>
                 </div>
                  <div className="flex justify-between items-center pt-2">
                     <span className="text-muted-foreground">Total Invested</span>
-                    <span className="font-semibold">{totalInvested !== null ? formatCurrency(totalInvested) : '-'}</span>
+                    <span className="font-semibold">{totalInvested !== null ? formatCompactNumber(totalInvested) : '-'}</span>
                 </div>
                  <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Estimated Gains</span>
-                    <span className="font-semibold">{totalGains !== null ? formatCurrency(totalGains) : '-'}</span>
+                    <span className="font-semibold">{totalGains !== null ? formatCompactNumber(totalGains) : '-'}</span>
                 </div>
             </div>
         </div>
@@ -238,7 +238,7 @@ function SipCalculator() {
 }
 
 function IncomeTaxCalculator() {
-    const { formatCurrency } = useCurrency();
+    const { formatCurrency, formatCompactNumber } = useCurrency();
     const [totalTax, setTotalTax] = React.useState<number | null>(null);
 
     const form = useForm<z.infer<typeof taxSchema>>({
@@ -290,7 +290,7 @@ function IncomeTaxCalculator() {
                 <h3 className="text-lg font-semibold text-center mb-4">Estimated Tax Liability</h3>
                 <div className="flex justify-between items-center border-b pb-2">
                     <span className="text-muted-foreground">Estimated Tax</span>
-                    <span className="text-2xl font-bold text-primary">{totalTax !== null ? formatCurrency(totalTax) : '-'}</span>
+                    <span className="text-2xl font-bold text-primary">{totalTax !== null ? formatCompactNumber(totalTax) : '-'}</span>
                 </div>
                  <div className="flex justify-between items-center pt-2">
                     <span className="text-muted-foreground">Effective Tax Rate</span>
@@ -303,7 +303,7 @@ function IncomeTaxCalculator() {
 
 
 function RetirementCalculator() {
-    const { formatCurrency } = useCurrency();
+    const { formatCurrency, formatCompactNumber } = useCurrency();
     const [futureValue, setFutureValue] = React.useState<number | null>(null);
 
     const form = useForm<z.infer<typeof retirementSchema>>({
@@ -364,7 +364,7 @@ function RetirementCalculator() {
 
             <div className="bg-muted/50 rounded-lg p-6 flex flex-col items-center justify-center text-center">
                 <h3 className="text-lg font-semibold mb-4">Estimated Retirement Corpus</h3>
-                <span className="text-4xl font-bold text-primary">{futureValue !== null ? formatCurrency(futureValue) : '-'}</span>
+                <span className="text-4xl font-bold text-primary">{futureValue !== null ? formatCompactNumber(futureValue) : '-'}</span>
                  <p className="text-sm text-muted-foreground mt-2">At age {form.getValues('retirementAge')}</p>
             </div>
         </div>
@@ -372,7 +372,7 @@ function RetirementCalculator() {
 }
 
 function EmergencyFundCalculator() {
-    const { formatCurrency } = useCurrency();
+    const { formatCurrency, formatCompactNumber } = useCurrency();
     const form = useForm<z.infer<typeof emergencyFundSchema>>({
         resolver: zodResolver(emergencyFundSchema),
         defaultValues: { monthlyExpenses: 2000 },
@@ -401,16 +401,16 @@ function EmergencyFundCalculator() {
                 <div className="flex justify-between items-center text-center">
                     <div className="w-1/3">
                         <p className="text-muted-foreground text-sm">3 Months</p>
-                        <p className="font-bold text-lg">{formatCurrency(monthlyExpenses * 3)}</p>
+                        <p className="font-bold text-lg">{formatCompactNumber(monthlyExpenses * 3)}</p>
                     </div>
                      <div className="w-1/3 border-x">
                         <p className="text-muted-foreground text-sm">6 Months</p>
-                        <p className="font-bold text-lg text-primary">{formatCurrency(monthlyExpenses * 6)}</p>
+                        <p className="font-bold text-lg text-primary">{formatCompactNumber(monthlyExpenses * 6)}</p>
                          <p className="text-xs text-muted-foreground">(Recommended)</p>
                     </div>
                      <div className="w-1/3">
                         <p className="text-muted-foreground text-sm">9 Months</p>
-                        <p className="font-bold text-lg">{formatCurrency(monthlyExpenses * 9)}</p>
+                        <p className="font-bold text-lg">{formatCompactNumber(monthlyExpenses * 9)}</p>
                     </div>
                 </div>
             </div>
@@ -458,7 +458,7 @@ export default function CalculatorsPage() {
                 <CardHeader>
                     <CardTitle className="text-lg">Income Tax Calculator</CardTitle>
                     <CardDescription>Get a simplified estimate of your annual income tax.</CardDescription>
-                </CardHeader>
+                </Header>
                 <CardContent>
                     <IncomeTaxCalculator />
                 </CardContent>
@@ -490,5 +490,3 @@ export default function CalculatorsPage() {
     </div>
   )
 }
-
-    

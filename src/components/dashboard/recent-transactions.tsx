@@ -71,7 +71,7 @@ interface RecentTransactionsProps {
 
 const transactionSchema = z.object({
   description: z.string().min(1, "Description is required"),
-  amount: z.coerce.number().min(0.01, "Amount must be positive"),
+  amount: z.coerce.number().min(0.01, "Amount must be positive").max(1000000000, "Amount is too large"),
   type: z.enum(["income", "expense"]),
   category: z.string().min(1, "Category is required"),
   date: z.string().optional(),
@@ -97,7 +97,6 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
     try {
       await addTransaction({
         ...values,
-        id: '', // Firestore will generate ID
         date: new Date().toLocaleDateString('en-CA')
       });
       form.reset();
@@ -175,7 +174,7 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
                     <FormItem>
                       <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. Groceries" {...field} />
+                        <Input placeholder="e.g. Groceries" {...field} maxLength={30} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -256,7 +255,7 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
                 <TableCell className="hidden sm:table-cell">
                   <Badge
                     variant={
-                      transaction.type === "income" ? "default" : "secondary"
+                      transaction.type === "income" ? "success" : "secondary"
                     }
                   >
                     {transaction.type}

@@ -132,7 +132,7 @@ export default function InvestmentsPage() {
                     <FormItem>
                       <FormLabel>Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. Apple Inc. / Bitcoin" {...field} />
+                        <Input placeholder="e.g. Apple Inc. / Bitcoin" {...field} maxLength={30} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -327,6 +327,96 @@ export default function InvestmentsPage() {
                         Add Investment
                         </Button>
                     </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                        <DialogTitle>Add Investment</DialogTitle>
+                        <DialogDescription>
+                            Track a new investment in your portfolio.
+                        </DialogDescription>
+                        </DialogHeader>
+                        <Form {...form}>
+                        <form onSubmit={form.handleSubmit(handleAddInvestment)} className="space-y-4 py-4">
+                            <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Name</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="e.g. Apple Inc. / Bitcoin" {...field} maxLength={30} />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                            <FormField
+                                control={form.control}
+                                name="type"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Type</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select type" />
+                                        </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                        <SelectItem value="Stock">Stock</SelectItem>
+                                        <SelectItem value="Crypto">Crypto</SelectItem>
+                                        <SelectItem value="ETF">ETF</SelectItem>
+                                        <SelectItem value="Other">Other</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                            <FormField
+                                control={form.control}
+                                name="quantity"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Quantity / Shares</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" step="any" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                            <FormField
+                                control={form.control}
+                                name="purchasePrice"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Total Purchase Cost</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" step="0.01" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                            <FormField
+                                control={form.control}
+                                name="currentValue"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Current Total Value</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" step="0.01" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                            <DialogFooter>
+                            <Button type="submit">Add Investment</Button>
+                            </DialogFooter>
+                        </form>
+                        </Form>
+                    </DialogContent>
                 </Dialog>
             </CardContent>
         </Card>

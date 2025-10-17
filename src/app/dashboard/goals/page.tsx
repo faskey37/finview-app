@@ -114,7 +114,7 @@ export default function GoalsPage() {
                  <FormField control={form.control} name="name" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Goal Name</FormLabel>
-                      <FormControl><Input placeholder="e.g. Vacation to Hawaii" {...field} /></FormControl>
+                      <FormControl><Input placeholder="e.g. Vacation to Hawaii" {...field} maxLength={30} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />

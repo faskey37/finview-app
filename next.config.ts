@@ -2,7 +2,6 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  transpilePackages: ['node-fetch'],
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -31,7 +30,9 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'example.com'
+        hostname: 'github.com',
+        port: '',
+        pathname: '/**',
       },
       {
         protocol: 'https',

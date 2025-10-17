@@ -44,15 +44,17 @@ const AuthContext = createContext<AuthContextType>({ user: null, userData: null,
 
 // Helper to initialize reCAPTCHA
 const getRecaptchaVerifier = (containerId: string) => {
-    if (typeof window !== 'undefined' && (window as any).recaptchaVerifier) {
-        // To avoid re-rendering issues, especially in React Strict Mode
-        const verifier = (window as any).recaptchaVerifier;
+    // Check if a verifier has already been created for this containerId to avoid re-rendering
+    if (typeof window !== 'undefined' && (window as any).recaptchaVerifiers && (window as any).recaptchaVerifiers[containerId]) {
+        const verifier = (window as any).recaptchaVerifiers[containerId];
         const container = document.getElementById(containerId);
+         // If the container is empty, it needs to be re-rendered.
         if (container && container.innerHTML === '') {
             verifier.render();
         }
         return verifier;
     }
+
     const recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
       'size': 'invisible',
       'callback': (response: any) => {
@@ -62,8 +64,12 @@ const getRecaptchaVerifier = (containerId: string) => {
         // Response expired. Ask user to solve reCAPTCHA again.
       }
     });
+
     if (typeof window !== 'undefined') {
-        (window as any).recaptchaVerifier = recaptchaVerifier;
+        if (!(window as any).recaptchaVerifiers) {
+            (window as any).recaptchaVerifiers = {};
+        }
+        (window as any).recaptchaVerifiers[containerId] = recaptchaVerifier;
     }
     return recaptchaVerifier;
 }
