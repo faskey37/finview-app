@@ -1,63 +1,52 @@
+
 'use server';
 
-import nodemailer from 'nodemailer';
-
-interface EmailParams {
-  to: string;
-  subject: string;
-  html: string;
-}
-
 /**
- * Sends an email using Nodemailer (server-side only).
- * Ensure the following environment variables are set:
- *  EMAIL_SERVER_HOST
- *  EMAIL_SERVER_PORT
- *  EMAIL_SERVER_USER
- *  EMAIL_SERVER_PASSWORD
- *  EMAIL_FROM
+ * @fileOverview A Genkit flow for sending emails.
+ *
+ * This file defines a flow that can be used to send transactional emails
+ * from the application using an external email service.
  */
 
-export async function sendEmail({ to, subject, html }: EmailParams): Promise<void> {
-  // ✅ Use explicit variable names for clarity
-  const host = process.env.EMAIL_SERVER_HOST;
-  const port = process.env.EMAIL_SERVER_PORT;
-  const user = process.env.EMAIL_SERVER_USER;
-  const pass = process.env.EMAIL_SERVER_PASSWORD;
-  const from = process.env.EMAIL_FROM;
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
+import { sendEmail as send } from '@/services/email';
 
-  // ✅ Validate config early
-  if (!host || !port || !user || !pass || !from) {
-    const message =
-      '❌ Email service not configured. Please set EMAIL_SERVER_HOST, EMAIL_SERVER_PORT, EMAIL_SERVER_USER, EMAIL_SERVER_PASSWORD, and EMAIL_FROM in your environment variables.';
-    console.error(message);
-    throw new Error(message);
-  }
+// Define the input schema for the email sending flow
+const SendEmailInputSchema = z.object({
+  to: z.string().email().describe('The recipient email address.'),
+  subject: z.string().describe('The subject line of the email.'),
+  text: z.string().describe('The plain text content of the email.'),
+});
 
-  try {
-    // ✅ Create reusable transporter
-    const transporter = nodemailer.createTransport({
-      host,
-      port: Number(port),
-      secure: Number(port) === 465, // true for 465, false for other ports
-      auth: { user, pass },
-    });
+export type SendEmailInput = z.infer<typeof SendEmailInputSchema>;
 
-    const mailOptions = {
-      from: from.includes('<') ? from : `"EcoVest" <${from}>`,
-      to,
-      subject,
-      html,
-    };
-
-    const info = await transporter.sendMail(mailOptions);
-
-    console.log('✅ Email sent:', info.response);
-  } catch (err) {
-    console.error('❌ Failed to send email:', err);
-    if (err instanceof Error) {
-      throw new Error(`Email sending failed: ${err.message}`);
-    }
-    throw new Error('Unknown error occurred while sending email.');
-  }
+// This is the exported function that components will call.
+export async function sendEmail(input: SendEmailInput): Promise<{ success: boolean; message: string }> {
+  return sendEmailFlow(input);
 }
+
+// Define the main email sending flow using Genkit
+const sendEmailFlow = ai.defineFlow(
+  {
+    name: 'sendEmailFlow',
+    inputSchema: SendEmailInputSchema,
+    outputSchema: z.object({
+        success: z.boolean(),
+        message: z.string()
+    }),
+  },
+  async (input) => {
+    try {
+      await send({
+        to: input.to,
+        subject: input.subject,
+        text: input.text,
+      });
+      return { success: true, message: 'Email sent successfully.' };
+    } catch (error: any) {
+      console.error('Error in sendEmailFlow:', error);
+      return { success: false, message: error.message || 'An unknown error occurred while sending the email.' };
+    }
+  }
+);
