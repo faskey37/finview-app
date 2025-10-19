@@ -38,6 +38,7 @@ const prompt = ai.definePrompt({
   name: 'generateMonthlySummaryPrompt',
   input: { schema: GenerateMonthlySummaryInputSchema },
   output: { schema: GenerateMonthlySummaryOutputSchema },
+  model: 'google/gemini-pro-1.5-flash',
   prompt: `You are a friendly and insightful financial analyst for an app called "EcoVest". Your task is to create a personalized and encouraging monthly summary email for a user. The output MUST be a single HTML string, styled with inline CSS for email compatibility.
 
 Analyze the following user data for the past month:
