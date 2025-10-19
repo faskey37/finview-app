@@ -40,7 +40,7 @@ const prompt = ai.definePrompt({
   name: 'negotiateBillPrompt',
   input: { schema: NegotiateBillInputSchema },
   output: { schema: NegotiateBillOutputSchema },
-  model: '',
+  
   prompt: `You are an expert bill negotiator. Your task is to analyze the provided bill image and generate a script and talking points for the user to negotiate a lower rate.
 
 Analyze the image to identify the service provider and the main monthly charge.

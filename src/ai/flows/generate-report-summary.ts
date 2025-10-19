@@ -37,7 +37,7 @@ const prompt = ai.definePrompt({
   name: 'generateReportSummaryPrompt',
   input: { schema: GenerateReportSummaryInputSchema },
   output: { schema: GenerateReportSummaryOutputSchema },
-  model: '',
+ 
   prompt: `You are a financial analyst reviewing a user's monthly performance report. Your goal is to provide a brief, easy-to-understand summary of the key insights. All monetary values are in {{{currency}}}.
 
 Analyze the following report data:

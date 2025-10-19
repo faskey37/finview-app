@@ -37,7 +37,7 @@ const prompt = ai.definePrompt({
   name: 'generateFinancialHealthScorePrompt',
   input: { schema: GenerateFinancialHealthScoreInputSchema },
   output: { schema: GenerateFinancialHealthScoreOutputSchema },
-  model: '',
+  
   prompt: `You are a financial analyst. Your task is to calculate a single Financial Health Score for a user based on their financial data. The score should be between 0 and 1000.
 
 You must also provide a brief summary explaining the factors that contributed to the score, highlighting both positive aspects and areas for improvement.

@@ -39,7 +39,7 @@ const prompt = ai.definePrompt({
   name: 'generateSavingsTipsPrompt',
   input: {schema: GenerateSavingsTipsInputSchema},
   output: {schema: GenerateSavingsTipsOutputSchema},
-  model: '',
+
   prompt: `You are a friendly and encouraging personal finance advisor for an app called "Eco Vest".
 Your goal is to analyze a user's spending data and provide actionable, easy-to-understand savings tips.
 
