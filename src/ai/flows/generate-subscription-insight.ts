@@ -46,7 +46,7 @@ const prompt = ai.definePrompt({
   name: 'generateSubscriptionInsightsPrompt',
   input: { schema: GenerateSubscriptionInsightsInputSchema },
   output: { schema: GenerateSubscriptionInsightsOutputSchema },
-  model: googleAI.model('openrouter/google/gemini-pro-1.5-flash'),
+  model: '',
   prompt: `You are a financial assistant specializing in subscription management. Your task is to analyze a list of user transactions and identify recurring monthly subscriptions.
 
 Analyze the provided transaction data. Look for recurring payments to common subscription services (like Netflix, Spotify, Amazon Prime, gym memberships, software services, etc.).
