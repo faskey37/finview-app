@@ -1,20 +1,20 @@
 
 "use client";
 
+import * as React from "react";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { SidebarProvider, useSidebar } from "@/hooks/use-sidebar";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
-import { DashboardHeader } from "@/components/dashboard/header";
 import { AppLoader } from "@/components/app-loader";
 import { cn } from "@/lib/utils";
-import { NotificationContext, useRealtimeNotifications, type Notification, type NotificationContextType } from "@/hooks/use-notifications";
-
+import { NotificationContext, useRealtimeNotifications, type Notification } from "@/hooks/use-notifications";
+import { Toaster } from "@/components/ui/toaster";
 
 function NotificationProvider({ children }: { children: ReactNode }) {
-    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [notifications, setNotifications] = React.useState<Notification[]>([]);
 
     const addNotification = (notification: Omit<Notification, 'id' | 'date' | 'read'>) => {
         const newNotification: Notification = {
@@ -23,7 +23,7 @@ function NotificationProvider({ children }: { children: ReactNode }) {
             date: new Date(),
             read: false
         };
-        setNotifications(prev => [newNotification, ...prev]);
+        setNotifications(prev => [newNotification, ...prev].slice(0, 10)); // Keep last 10
     };
     
     const markAsRead = () => {
@@ -42,7 +42,6 @@ function DashboardContent({ children }: { children: ReactNode }) {
   const { isCollapsed } = useSidebar();
   const router = useRouter();
 
-  // Initialize notification hook to run on all dashboard pages
   useRealtimeNotifications();
 
   useEffect(() => {
@@ -62,11 +61,11 @@ function DashboardContent({ children }: { children: ReactNode }) {
           "flex flex-col flex-1 transition-all duration-300 ease-in-out",
           isCollapsed ? "md:ml-20" : "md:ml-64"
       )}>
-        <DashboardHeader />
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 no-scrollbar">
+        <main className="flex-1 overflow-y-auto no-scrollbar p-4 md:p-8">
           {children}
         </main>
       </div>
+      <Toaster />
     </div>
   );
 }

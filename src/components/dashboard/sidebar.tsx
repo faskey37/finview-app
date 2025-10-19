@@ -8,69 +8,73 @@ import {
   ArrowLeftRight,
   Wallet,
   Settings,
-  BadgeDollarSign,
-  Target,
+  HelpCircle,
   TrendingUp,
-  Repeat,
-  Goal,
-  Calculator,
-  Newspaper,
+  Target,
+  Flag,
+  BarChart3,
+  PieChart,
+  Users,
   Leaf,
   Activity,
-  Users,
+  Calculator,
   ShieldCheck,
-  PiggyBank,
   BrainCircuit,
-  User as UserIcon,
-  BarChart,
+  Newspaper,
+  User,
+  CreditCard,
+  Repeat,
 } from "lucide-react";
 import Logo from "@/components/logo";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltips";
-import { useAuth } from "@/hooks/use-auth";
 import { useSidebar } from "@/hooks/use-sidebar";
+import { useAuth } from "@/hooks/use-auth";
+import { Input } from "../ui/input";
+import { Button } from "../ui/button";
 
-const navItems = [
+const mainNavItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/dashboard/assistant", icon: BrainCircuit, label: "AI Assistant", isPro: true },
-  { href: "/dashboard/reports", icon: BarChart, label: "Reports" },
   { href: "/dashboard/transactions", icon: ArrowLeftRight, label: "Transactions" },
   { href: "/dashboard/accounts", icon: Wallet, label: "Accounts" },
-  { href: "/dashboard/net-worth", icon: PiggyBank, label: "Net Worth" },
-  { href: "/dashboard/budgets", icon: Target, label: "Budgets" },
-  { href: "/dashboard/subscriptions", icon: Repeat, label: "Subscriptions" },
   { href: "/dashboard/investments", icon: TrendingUp, label: "Investments" },
-  { href: "/dashboard/goals", icon: Goal, label: "Goals" },
-  { href: "/dashboard/score", icon: Activity, label: "Score" },
-  { href: "/dashboard/eco", icon: Leaf, label: "Eco-Tracker" },
-  { href: "/dashboard/community", icon: Users, label: "Community" },
-  { href: "/dashboard/news", icon: Newspaper, label: "News" },
-  { href: "/dashboard/calculators", icon: Calculator, label: "Calculators" },
+  { href: "/dashboard/recurring", icon: Repeat, label: "Recurring" },
+  { href: "/dashboard/subscriptions", icon: CreditCard, label: "Subscriptions" },
 ];
 
-const secondaryNavItems = [
-    { href: "/dashboard/profile", icon: UserIcon, label: "Profile" },
-    { href: "/dashboard/bill-negotiation", icon: ShieldCheck, label: "Bill Negotiation", isPro: true },
+const analyticsNavItems = [
+    { href: "/dashboard/reports", icon: BarChart3, label: "Reports" },
+    { href: "/dashboard/budgets", icon: Target, label: "Budgets" },
+    { href: "/dashboard/goals", icon: Flag, label: "Goals" },
+    { href: "/dashboard/net-worth", icon: PieChart, label: "Net Worth" },
+    { href: "/dashboard/community", icon: Users, label: "Community" },
+];
+
+const toolsNavItems = [
+    { href: "/dashboard/assistant", icon: BrainCircuit, label: "Assistant"},
+    { href: "/dashboard/score", icon: Activity, label: "Health Score" },
+    { href: "/dashboard/eco", icon: Leaf, label: "Impact Hub" },
+    { href: "/dashboard/bill-negotiation", icon: ShieldCheck, label: "Bill Negotiator", isPro: true},
+    { href: "/dashboard/calculators", icon: Calculator, label: "Calculators" },
+    { href: "/dashboard/news", icon: Newspaper, label: "News" },
+]
+
+const personalNavItems = [
+    { href: "/dashboard/profile", icon: User, label: "Profile" },
     { href: "/dashboard/settings", icon: Settings, label: "Settings" },
+    { href: "/dashboard/help", icon: HelpCircle, label: "Help Center" },
 ]
 
 export function DashboardSidebar({ isMobile = false }) {
   const pathname = usePathname();
   const { isPro } = useAuth();
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, toggleSidebar } = useSidebar();
 
-  const navContent = (
-    <TooltipProvider>
-      <div className={cn(
-          "flex h-16 items-center", 
-          isCollapsed ? "justify-center px-2" : "px-4 lg:px-6"
-      )}>
-        <Logo isCollapsed={isCollapsed} />
-      </div>
-      <div className="flex-1 overflow-y-auto no-scrollbar">
-        <nav className="grid items-start px-2 text-sm font-medium lg:px-4 gap-2 py-4">
-          {navItems.map((item) => {
+  const renderNavSection = (title: string, items: any[]) => (
+    <>
+        <p className={cn("px-4 text-xs font-semibold uppercase text-muted-foreground tracking-wider mb-2 mt-6", isCollapsed && "text-center")}>{title}</p>
+        <nav className="grid items-start px-2 text-sm font-medium lg:px-4 gap-1">
+          {items.map((item) => {
             if (item.isPro && !isPro) return null;
             return (
              <Tooltip key={item.label} delayDuration={0}>
@@ -78,77 +82,60 @@ export function DashboardSidebar({ isMobile = false }) {
                     <Link
                     href={item.href}
                     className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                        pathname === item.href && "bg-muted text-primary",
+                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-muted-foreground transition-all hover:text-foreground hover:bg-muted",
+                        pathname === item.href && "bg-muted text-foreground font-semibold",
                         isCollapsed && "justify-center"
                     )}
                     >
-                    <item.icon className="h-4 w-4" />
+                    <item.icon className="h-5 w-5" />
                     <span className={cn("truncate", isCollapsed && "sr-only")}>{item.label}</span>
-                     {item.isPro && (
-                            <span className={cn("ml-auto text-xs font-semibold text-primary", isCollapsed && "sr-only")}>Pro</span>
-                        )}
                     </Link>
                 </TooltipTrigger>
                  {isCollapsed && (
                   <TooltipContent side="right">
-                    {item.label}
+                    <p>{item.label}</p>
                   </TooltipContent>
                 )}
             </Tooltip>
           )})}
         </nav>
-        <div className="my-4 px-4">
-            <hr className="border-border" />
-        </div>
-         <nav className="grid items-start px-2 text-sm font-medium lg:px-4 gap-2">
-            {secondaryNavItems.map((item) => {
-              if (item.isPro && !isPro) return null;
-              return (
-                <Tooltip key={item.label} delayDuration={0}>
-                    <TooltipTrigger asChild>
-                        <Link
-                        href={item.href}
-                        className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                            pathname === item.href && "bg-muted text-primary",
-                            isCollapsed && "justify-center"
-                        )}
-                        >
-                        <item.icon className="h-4 w-4" />
-                        <span className={cn("truncate", isCollapsed && "sr-only")}>{item.label}</span>
-                         {item.isPro && (
-                            <span className={cn("ml-auto text-xs font-semibold text-primary", isCollapsed && "sr-only")}>Pro</span>
-                        )}
-                        </Link>
-                    </TooltipTrigger>
-                     {isCollapsed && (
-                      <TooltipContent side="right">
-                        {item.label}
-                      </TooltipContent>
-                    )}
-                </Tooltip>
-            )})}
-        </nav>
+    </>
+  );
+
+  const navContent = (
+    <TooltipProvider>
+      <div className={cn(
+          "flex h-16 items-center justify-between border-b", 
+          isCollapsed ? "justify-center px-2" : "px-4 lg:px-6"
+      )}>
+        <Logo isCollapsed={isCollapsed} />
+        {!isMobile && (
+             <Button 
+                variant="ghost" 
+                size="icon" 
+                className={cn("rounded-full data-[state=open]:bg-muted", isCollapsed && "hidden")}
+                onClick={toggleSidebar}
+            >
+                <span className="sr-only">Toggle sidebar</span>
+            </Button>
+        )}
       </div>
-       {!isCollapsed && (
-         <div className="mt-auto p-4">
-            {!isPro && (
-            <div className={cn("rounded-lg border p-4 text-center")}>
-                <div>
-                    <BadgeDollarSign className="h-10 w-10 mb-4 inline-block text-accent" />
-                    <h3 className="font-bold text-lg">Upgrade to Pro</h3>
-                    <p className="text-sm text-muted-foreground mt-2">
-                        Unlock AI features and get unlimited access to our support team.
-                    </p>
-                    <Button size="sm" className="w-full mt-4 bg-accent hover:bg-accent/90" asChild>
-                        <Link href="/dashboard/upgrade">Upgrade</Link>
-                    </Button>
-                </div>
+
+       <div className={cn("p-4", isCollapsed && "p-2")}>
+            <div className="relative">
+                <Input placeholder="Search..." className={cn("pr-8", isCollapsed && "hidden")} />
+                 <kbd className={cn("pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100 sm:flex", isCollapsed && "hidden")}>
+                    <span className="text-xs">⌘</span>S
+                </kbd>
             </div>
-            )}
         </div>
-       )}
+
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-4">
+        {renderNavSection("Menu", mainNavItems)}
+        {renderNavSection("Analysis", analyticsNavItems)}
+        {renderNavSection("Tools", toolsNavItems)}
+        {renderNavSection("Personal", personalNavItems)}
+      </div>
     </TooltipProvider>
   );
 
@@ -158,10 +145,10 @@ export function DashboardSidebar({ isMobile = false }) {
 
   return (
     <aside className={cn(
-        "hidden md:fixed md:inset-y-0 md:left-0 md:z-40 md:block transition-all duration-300 ease-in-out",
+        "hidden md:fixed md:inset-y-0 md:left-0 md:z-40 md:block transition-all duration-300 ease-in-out border-r",
         isCollapsed ? "w-20" : "w-64"
     )}>
-       <div className="flex h-full max-h-screen flex-col gap-2 border-r bg-card">
+       <div className="flex h-full max-h-screen flex-col gap-2 bg-card">
         {navContent}
       </div>
     </aside>

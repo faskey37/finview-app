@@ -108,38 +108,50 @@ export default function EcoPage() {
         </div>
       </div>
       
-        <Card>
-            <CardHeader>
-                <CardTitle className="text-lg">Today's Eco-Challenge</CardTitle>
-                <CardDescription>Complete daily challenges to earn points and build sustainable habits.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex items-start gap-6 rounded-lg bg-muted/50 p-6">
-                <dailyChallenge.icon className="h-10 w-10 text-green-600 flex-shrink-0 mt-1" />
-                <div className="flex-1">
-                    <h3 className="font-bold">{dailyChallenge.title}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{dailyChallenge.description}</p>
-                </div>
-                <div className="text-right">
-                    <p className="font-bold text-lg text-primary">+{dailyChallenge.points} PTS</p>
-                </div>
-            </CardContent>
-            <CardFooter className="flex justify-end items-center gap-4 pt-4">
-                 <div className="flex items-center space-x-2">
-                    <Checkbox
-                        id="complete-challenge"
-                        checked={isChallengeCompleted}
-                        onCheckedChange={handleCompleteChallenge}
-                        disabled={isChallengeCompleted}
-                    />
-                    <Label
-                        htmlFor="complete-challenge"
-                        className={isChallengeCompleted ? "text-muted-foreground line-through" : ""}
-                    >
-                       {isChallengeCompleted ? "Completed!" : "Mark as Complete"}
-                    </Label>
-                </div>
-            </CardFooter>
-        </Card>
+        <div className="grid lg:grid-cols-3 gap-8">
+            <Card className="lg:col-span-2">
+                <CardHeader>
+                    <CardTitle className="text-lg">Today's Eco-Challenge</CardTitle>
+                    <CardDescription>Complete daily challenges to earn points and build sustainable habits.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex items-start gap-6 rounded-lg bg-muted/50 p-6">
+                    <dailyChallenge.icon className="h-10 w-10 text-green-600 flex-shrink-0 mt-1" />
+                    <div className="flex-1">
+                        <h3 className="font-bold">{dailyChallenge.title}</h3>
+                        <p className="text-sm text-muted-foreground mt-1">{dailyChallenge.description}</p>
+                    </div>
+                    <div className="text-right">
+                        <p className="font-bold text-lg text-primary">+{dailyChallenge.points} PTS</p>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end items-center gap-4 pt-4">
+                    <div className="flex items-center space-x-2">
+                        <Checkbox
+                            id="complete-challenge"
+                            checked={isChallengeCompleted}
+                            onCheckedChange={handleCompleteChallenge}
+                            disabled={isChallengeCompleted}
+                        />
+                        <Label
+                            htmlFor="complete-challenge"
+                            className={isChallengeCompleted ? "text-muted-foreground line-through" : ""}
+                        >
+                        {isChallengeCompleted ? "Completed!" : "Mark as Complete"}
+                        </Label>
+                    </div>
+                </CardFooter>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2"><Sprout className="text-primary"/> Your Eco Points</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col items-center justify-center h-full">
+                    <p className="text-6xl font-bold text-primary">{userData?.ecoPoints || 0}</p>
+                    <p className="text-muted-foreground">points earned</p>
+                </CardContent>
+            </Card>
+        </div>
 
 
        <Card>

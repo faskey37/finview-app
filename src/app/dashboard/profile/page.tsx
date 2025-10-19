@@ -5,15 +5,14 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useAuth, sendPasswordReset, updateUserEmail, reauthenticate, deleteUserAccount, sendVerificationEmail } from "@/hooks/use-auth";
+import { useAuth, sendPasswordReset, updateUserEmail, reauthenticate, deleteUserAccount, linkPhoneNumber, verifyOtpForLinking } from "@/hooks/use-auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Sparkles, Edit, CalendarIcon, BadgeCheck, Trash2, AlertCircle, Mail, Send } from "lucide-react";
+import { Sparkles, Edit, CalendarIcon, BadgeCheck, Trash2, Mail, Send, Phone, Loader2, Sprout } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -42,6 +41,7 @@ import { generateMonthlySummary } from "@/ai/flows/generate-monthly-summary";
 import { useTransactions } from "@/hooks/use-transactions";
 import { useBudgets } from "@/hooks/use-budgets";
 import { useGoals } from "@/hooks/use-goals";
+import { ConfirmationResult } from "firebase/auth";
 
 const profileSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -56,22 +56,31 @@ const photoSchema = z.object({
   url: z.string().url("Please enter a valid URL."),
 });
 
+const phoneSchema = z.object({
+    phoneNumber: z.string().min(10, "Please enter a valid phone number."),
+});
+
+const otpSchema = z.object({
+    otp: z.string().min(6, "Please enter the 6-digit code."),
+});
+
 const deleteSchema = z.object({
   password: z.string().min(1, "Password is required to delete your account."),
 });
 
 export default function ProfilePage() {
-  const { user, loading, userData, updateAuthUserProfile } = useAuth();
+  const { user, loading, userData, updateAuthUserProfile, isPro } = useAuth();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = React.useState(false);
   const [isSendingReset, setIsSendingReset] = React.useState(false);
-  const [isSendingVerification, setIsSendingVerification] = React.useState(false);
   const [isSendingTestEmail, setIsSendingTestEmail] = React.useState(false);
   const [isSendingSummary, setIsSendingSummary] = React.useState(false);
   const [photoDialogOpen, setPhotoDialogOpen] = React.useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = React.useState(false);
+  const [phoneDialogOpen, setPhoneDialogOpen] = React.useState(false);
   const [accountAge, setAccountAge] = React.useState('');
   const [isDeleting, setIsDeleting] = React.useState(false);
+  const [confirmationResult, setConfirmationResult] = React.useState<ConfirmationResult | null>(null);
 
   const { transactions } = useTransactions();
   const { budgets } = useBudgets();
@@ -91,6 +100,16 @@ export default function ProfilePage() {
     resolver: zodResolver(photoSchema),
     defaultValues: { url: "" },
   });
+
+  const phoneForm = useForm<z.infer<typeof phoneSchema>>({
+    resolver: zodResolver(phoneSchema),
+    defaultValues: { phoneNumber: "" },
+  });
+
+  const otpForm = useForm<z.infer<typeof otpSchema>>({
+    resolver: zodResolver(otpSchema),
+    defaultValues: { otp: "" },
+  });
   
   const deleteForm = useForm<z.infer<typeof deleteSchema>>({
     resolver: zodResolver(deleteSchema),
@@ -101,10 +120,13 @@ export default function ProfilePage() {
     profileForm.reset({ name: user?.displayName || "" });
     emailForm.reset({ email: user?.email || "", password: "" });
     photoForm.reset({ url: userData?.photoURL || user?.photoURL || "" });
-    if (user?.metadata.creationTime) {
-      setAccountAge(formatDistanceToNow(new Date(user.metadata.creationTime)));
+     if (user) {
+        phoneForm.reset({ phoneNumber: user.phoneNumber || "" });
+        if (user.metadata.creationTime) {
+            setAccountAge(formatDistanceToNow(new Date(user.metadata.creationTime)));
+        }
     }
-  }, [user, userData, profileForm, emailForm, photoForm]);
+  }, [user, userData, profileForm, emailForm, photoForm, phoneForm]);
 
   async function handleProfileUpdate(values: z.infer<typeof profileSchema>) {
     setIsSaving(true);
@@ -145,6 +167,35 @@ export default function ProfilePage() {
     }
   }
 
+    async function handleLinkPhone(values: z.infer<typeof phoneSchema>) {
+    setIsSaving(true);
+    try {
+        const result = await linkPhoneNumber(values.phoneNumber);
+        setConfirmationResult(result);
+        toast({ title: "Verification Code Sent", description: "Please check your phone for the code." });
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Error", description: error.message || "Failed to send code." });
+    } finally {
+        setIsSaving(false);
+    }
+  }
+
+  async function handleVerifyOtp(values: z.infer<typeof otpSchema>) {
+    if (!confirmationResult) return;
+    setIsSaving(true);
+    try {
+        await verifyOtpForLinking(confirmationResult, values.otp);
+        toast({ title: "Success", description: "Phone number linked successfully." });
+        setPhoneDialogOpen(false);
+        setConfirmationResult(null);
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Error", description: error.message || "Invalid code." });
+    } finally {
+        setIsSaving(false);
+    }
+  }
+
+
   async function handlePasswordReset() {
     if (!user?.email) return;
     setIsSendingReset(true);
@@ -155,19 +206,6 @@ export default function ProfilePage() {
       toast({ variant: "destructive", title: "Error", description: "Failed to send reset email." });
     } finally {
       setIsSendingReset(false);
-    }
-  }
-
-   async function handleResendVerification() {
-    if (!user) return;
-    setIsSendingVerification(true);
-    try {
-      await sendVerificationEmail();
-      toast({ title: "Verification Email Sent", description: "Please check your inbox." });
-    } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to send verification email." });
-    } finally {
-      setIsSendingVerification(false);
     }
   }
 
@@ -251,24 +289,6 @@ export default function ProfilePage() {
     <div className="flex flex-col gap-8">
       <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
 
-      {user && !user.emailVerified && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Email Not Verified</AlertTitle>
-          <AlertDescription className="flex items-center justify-between">
-            Please check your inbox to verify your email address.
-            <Button
-              onClick={handleResendVerification}
-              disabled={isSendingVerification}
-              variant="link"
-              className="text-destructive-foreground"
-            >
-              {isSendingVerification ? 'Sending...' : 'Resend Email'}
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
-
         <Card>
             <CardHeader>
                 <CardTitle className="text-lg">Your Information</CardTitle>
@@ -322,7 +342,7 @@ export default function ProfilePage() {
                     </div>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid md:grid-cols-3 gap-4">
                   <Card className="bg-muted/50">
                       <CardHeader>
                         <CardTitle className="text-sm font-medium flex items-center gap-2"><CalendarIcon/> Account Age</CardTitle>
@@ -339,6 +359,16 @@ export default function ProfilePage() {
                           <div className="text-2xl font-bold flex items-center gap-2">
                             {userData?.isPro ? "Pro" : "Basic"}
                              {userData?.isPro && <Sparkles className="h-6 w-6 text-primary" />}
+                          </div>
+                      </CardContent>
+                  </Card>
+                  <Card className="bg-muted/50">
+                      <CardHeader>
+                        <CardTitle className="text-sm font-medium flex items-center gap-2"><Sprout className="text-primary"/> Eco-Points</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                          <div className="text-2xl font-bold flex items-center gap-2">
+                            {userData?.ecoPoints || 0}
                           </div>
                       </CardContent>
                   </Card>
@@ -370,11 +400,11 @@ export default function ProfilePage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Account Security</CardTitle>
-          <CardDescription>Manage your email, password, and test notification settings.</CardDescription>
+          <CardDescription>Manage your sign-in methods, password, and test notification settings.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
            <div className="space-y-2 p-4 border rounded-lg">
-                <label className="text-sm font-medium leading-none">Email</label>
+                <label className="text-sm font-medium leading-none">Email Address</label>
                 <div className="flex items-center justify-between gap-4">
                     <p className="text-sm text-muted-foreground">{user?.email}</p>
                     <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
@@ -416,6 +446,64 @@ export default function ProfilePage() {
                     </Dialog>
                 </div>
             </div>
+            
+            <div className="space-y-2 p-4 border rounded-lg">
+                <label className="text-sm font-medium leading-none">Phone Number</label>
+                <div className="flex items-center justify-between gap-4">
+                    <p className="text-sm text-muted-foreground">{user?.phoneNumber || "Not set"}</p>
+                     <Dialog open={phoneDialogOpen} onOpenChange={setPhoneDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" type="button"><Phone /> {user?.phoneNumber ? "Change" : "Link"} Phone</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>{confirmationResult ? 'Verify Code' : 'Link Phone Number'}</DialogTitle>
+                                <DialogDescription>
+                                    {confirmationResult ? "Enter the code sent to your phone." : "Enter your phone number to receive a verification code."}
+                                </DialogDescription>
+                            </DialogHeader>
+                            {!confirmationResult ? (
+                                <Form {...phoneForm}>
+                                    <form onSubmit={phoneForm.handleSubmit(handleLinkPhone)} className="space-y-4 py-4">
+                                        <FormField control={phoneForm.control} name="phoneNumber" render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Phone Number</FormLabel>
+                                                <FormControl><Input type="tel" placeholder="+1 123 456 7890" {...field} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )} />
+                                        <DialogFooter>
+                                            <Button type="submit" disabled={isSaving}>
+                                                {isSaving && <Loader2 className="animate-spin" />}
+                                                Send Code
+                                            </Button>
+                                        </DialogFooter>
+                                    </form>
+                                </Form>
+                            ) : (
+                                <Form {...otpForm}>
+                                    <form onSubmit={otpForm.handleSubmit(handleVerifyOtp)} className="space-y-4 py-4">
+                                        <FormField control={otpForm.control} name="otp" render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Verification Code</FormLabel>
+                                                <FormControl><Input type="text" placeholder="123456" {...field} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )} />
+                                        <DialogFooter>
+                                            <Button type="submit" disabled={isSaving}>
+                                                {isSaving && <Loader2 className="animate-spin" />}
+                                                Verify & Link
+                                            </Button>
+                                        </DialogFooter>
+                                    </form>
+                                </Form>
+                            )}
+                        </DialogContent>
+                    </Dialog>
+                </div>
+            </div>
+
             <div className="space-y-2 p-4 border rounded-lg">
                 <label className="text-sm font-medium leading-none">Password</label>
                 <div className="flex items-center justify-between gap-4">
@@ -425,12 +513,21 @@ export default function ProfilePage() {
                     </Button>
                 </div>
             </div>
-          
+            <div className="space-y-2 p-4 border rounded-lg">
+                <label className="text-sm font-medium leading-none">Test Email Notifications</label>
+                <div className="flex items-center justify-between gap-4">
+                    <p className="text-sm text-muted-foreground">Click to verify your email service is working.</p>
+                     <Button onClick={handleSendTestEmail} disabled={isSendingTestEmail} variant="outline">
+                       <Mail />
+                       {isSendingTestEmail ? "Sending..." : "Send Test Email"}
+                    </Button>
+                </div>
+            </div>
             <div className="space-y-2 p-4 border rounded-lg">
                 <label className="text-sm font-medium leading-none">Monthly Summary</label>
                 <div className="flex items-center justify-between gap-4">
                     <p className="text-sm text-muted-foreground">Send an AI-generated summary of your monthly activity.</p>
-                     <Button onClick={handleSendSummary} disabled={isSendingSummary} variant="outline">
+                     <Button onClick={handleSendSummary} disabled={isSendingSummary || !isPro}>
                        <Send />
                        {isSendingSummary ? "Sending..." : "Send Summary Email"}
                     </Button>
@@ -481,6 +578,7 @@ export default function ProfilePage() {
             </AlertDialog>
         </CardFooter>
       </Card>
+      <div id="recaptcha-container-profile" className="hidden"></div>
     </div>
   );
 }
