@@ -1,4 +1,3 @@
-
 'use server';
 
 import nodemailer from 'nodemailer';
@@ -10,52 +9,55 @@ interface EmailParams {
 }
 
 /**
- * Sends an email using Nodemailer.
- * This function should only be called from a server-side environment (e.g., a Genkit flow).
- * It uses environment variables for SMTP configuration.
- *
- * @param {EmailParams} params - The email parameters.
- * @throws {Error} If the email service is not configured or if the email fails to send.
+ * Sends an email using Nodemailer (server-side only).
+ * Ensure the following environment variables are set:
+ *  EMAIL_SERVER_HOST
+ *  EMAIL_SERVER_PORT
+ *  EMAIL_SERVER_USER
+ *  EMAIL_SERVER_PASSWORD
+ *  EMAIL_FROM
  */
-export async function sendEmail({ to, subject, html }: EmailParams): Promise<void> {
-  const emailHost = process.env.EMAIL_SERVER;
-  const emailPort = process.env.EMAIL_PORT;
-  const emailUser = process.env.EMAIL_SERVER_USER;
-  const emailPass = process.env.EMAIL_SERVER_PASSWORD;
-  const emailFrom = process.env.EMAIL_FROM;
 
-  if (!emailHost || !emailPort || !emailUser || !emailPass || !emailFrom) {
+export async function sendEmail({ to, subject, html }: EmailParams): Promise<void> {
+  // ✅ Use explicit variable names for clarity
+  const host = process.env.EMAIL_SERVER_HOST;
+  const port = process.env.EMAIL_SERVER_PORT;
+  const user = process.env.EMAIL_SERVER_USER;
+  const pass = process.env.EMAIL_SERVER_PASSWORD;
+  const from = process.env.EMAIL_FROM;
+
+  // ✅ Validate config early
+  if (!host || !port || !user || !pass || !from) {
     const message =
-      'Email service is not fully configured. Please set EMAIL_SERVER, EMAIL_PORT, EMAIL_SERVER_USER, EMAIL_SERVER_PASSWORD, and EMAIL_FROM in your .env file and restart the server to enable this feature.';
-    console.warn(message);
+      '❌ Email service not configured. Please set EMAIL_SERVER_HOST, EMAIL_SERVER_PORT, EMAIL_SERVER_USER, EMAIL_SERVER_PASSWORD, and EMAIL_FROM in your environment variables.';
+    console.error(message);
     throw new Error(message);
   }
 
-  const transporter = nodemailer.createTransport({
-    host: emailHost,
-    port: parseInt(emailPort, 10),
-    secure: parseInt(emailPort, 10) === 465, // true for 465, false for other ports
-    auth: {
-      user: emailUser,
-      pass: emailPass,
-    },
-  });
-
-  const mailOptions = {
-    from: `"EcoVest" <${emailFrom}>`,
-    to,
-    subject,
-    html,
-  };
-
   try {
+    // ✅ Create reusable transporter
+    const transporter = nodemailer.createTransport({
+      host,
+      port: Number(port),
+      secure: Number(port) === 465, // true for 465, false for other ports
+      auth: { user, pass },
+    });
+
+    const mailOptions = {
+      from: from.includes('<') ? from : `"EcoVest" <${from}>`,
+      to,
+      subject,
+      html,
+    };
+
     const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent successfully:', info.response);
-  } catch (error) {
-    console.error('An unexpected error occurred in sendEmail:', error);
-    if (error instanceof Error) {
-        throw new Error(`An unexpected error occurred while trying to send the email: ${error.message}`);
+
+    console.log('✅ Email sent:', info.response);
+  } catch (err) {
+    console.error('❌ Failed to send email:', err);
+    if (err instanceof Error) {
+      throw new Error(`Email sending failed: ${err.message}`);
     }
-    throw new Error('An unexpected error occurred while trying to send the email.');
+    throw new Error('Unknown error occurred while sending email.');
   }
 }
