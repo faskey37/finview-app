@@ -92,7 +92,7 @@ export default function DashboardPage() {
     <div className="grid gap-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             <BalanceCard balance={totalBalance} />
-            <IncomeCard income={totalIncome} />
+            <IncomeCard income={totalIncome} transactions={transactions} />
             <ExpenseCard expense={totalExpense} />
         </div>
 
