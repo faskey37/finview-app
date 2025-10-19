@@ -46,7 +46,7 @@ const prompt = ai.definePrompt({
   name: 'generateCarbonFootprintPrompt',
   input: { schema: GenerateCarbonFootprintInputSchema },
   output: { schema: GenerateCarbonFootprintOutputSchema },
-
+  model: googleAI.model('openrouter/google/gemini-pro-1.5-flash'),
   prompt: `You are an environmental impact analyst for an app called "Eco Vest". Your task is to estimate the carbon footprint (in kg of CO2) for a list of spending categories and provide actionable, eco-conscious advice.
 
 Use established conversion factors to estimate the CO2 emissions for each dollar spent in the given categories.
@@ -84,4 +84,3 @@ const generateCarbonFootprintFlow = ai.defineFlow(
     return output;
   }
 );
-

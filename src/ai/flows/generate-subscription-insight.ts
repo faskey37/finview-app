@@ -12,7 +12,7 @@
 import { ai } from '@/ai/genkit';
 import { googleAI } from '@genkit-ai/googleai';
 import { z } from 'genkit';
-import { addRecurringTransaction } from '@/services/recurring';
+import { SubscriptionInsight } from '@/lib/types';
 
 const GenerateSubscriptionInsightsInputSchema = z.object({
   transactions: z
@@ -46,7 +46,7 @@ const prompt = ai.definePrompt({
   name: 'generateSubscriptionInsightsPrompt',
   input: { schema: GenerateSubscriptionInsightsInputSchema },
   output: { schema: GenerateSubscriptionInsightsOutputSchema },
-  
+  model: googleAI.model('openrouter/google/gemini-pro-1.5-flash'),
   prompt: `You are a financial assistant specializing in subscription management. Your task is to analyze a list of user transactions and identify recurring monthly subscriptions.
 
 Analyze the provided transaction data. Look for recurring payments to common subscription services (like Netflix, Spotify, Amazon Prime, gym memberships, software services, etc.).
@@ -56,7 +56,7 @@ For each identified subscription, provide:
 2. The name of the service.
 3. The monthly cost.
 4. A relevant category.
-5. A short, helpful suggestion for the user. For instance, if it's an expensive subscription, you could note its high cost. If it's a service with family plans, you could suggest sharing. If it's a niche service, you could remind them to evaluate its usage.
+5. A short, helpful suggestion for the user. For instance, if it's an expensive subscription, you could note its high cost. If it's a family plan, you could suggest sharing. If it's a niche service, you could remind them to evaluate its usage.
 
 Transaction Data:
 {{{transactions}}}
@@ -76,20 +76,6 @@ const generateSubscriptionInsightsFlow = ai.defineFlow(
      if (!output) {
       return { insights: [] };
     }
-
-    // Save each insight as a recurring transaction
-    for (const insight of output.insights) {
-      await addRecurringTransaction({
-        description: insight.name,
-        amount: insight.monthlyCost,
-        type: 'expense',
-        category: insight.category,
-        frequency: 'monthly',
-        startDate: new Date().toLocaleDateString('en-CA'),
-        suggestion: insight.suggestion
-      });
-    }
-
     return output;
   }
 );
