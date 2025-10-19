@@ -249,9 +249,9 @@ export default function ProfilePage() {
     setIsSendingSummary(true);
     try {
       const summaryResult = await generateMonthlySummary({
-        transactions: JSON.stringify(transactions),
-        budgets: JSON.stringify(budgets),
-        goals: JSON.stringify(goals),
+        transactions: transactions,
+        budgets: budgets,
+        goals: goals,
       });
 
       const emailResult = await sendEmail({
