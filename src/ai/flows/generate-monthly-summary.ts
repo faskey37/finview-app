@@ -11,15 +11,40 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+import type { Budget, Goal, Transaction } from '@/lib/types';
+
+
+const TransactionSchema = z.object({
+  id: z.string(),
+  date: z.string(),
+  description: z.string(),
+  amount: z.number(),
+  type: z.enum(['income', 'expense']),
+  category: z.string(),
+});
+
+const BudgetSchema = z.object({
+  id: z.string(),
+  category: z.string(),
+  amount: z.number(),
+  spent: z.optional(z.number()),
+});
+
+const GoalSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  targetAmount: z.number(),
+  currentAmount: z.number(),
+  deadline: z.string(),
+});
 
 const GenerateMonthlySummaryInputSchema = z.object({
-  transactions: z
-    .string()
-    .describe('A JSON string of the user\'s transactions for the month.'),
-  budgets: z.string().describe('A JSON string of the user\'s budgets.'),
-  goals: z.string().describe('A JSON string of the user\'s savings goals.'),
+  transactions: z.array(TransactionSchema),
+  budgets: z.array(BudgetSchema),
+  goals: z.array(GoalSchema),
 });
 export type GenerateMonthlySummaryInput = z.infer<typeof GenerateMonthlySummaryInputSchema>;
+
 
 const GenerateMonthlySummaryOutputSchema = z.object({
   summaryHtml: z
@@ -34,16 +59,28 @@ export async function generateMonthlySummary(
   return generateMonthlySummaryFlow(input);
 }
 
+const SummarizedDataSchema = z.object({
+    totalIncome: z.number(),
+    totalExpense: z.number(),
+    topSpendingCategories: z.array(z.object({ category: z.string(), amount: z.number() })),
+    budgetPerformance: z.array(z.object({ category: z.string(), budgeted: z.number(), spent: z.number(), status: z.string() })),
+    goalProgress: z.array(z.object({ name: z.string(), current: z.number(), target: z.number(), progress: z.string() })),
+});
+
+
 const prompt = ai.definePrompt({
   name: 'generateMonthlySummaryPrompt',
-  input: { schema: GenerateMonthlySummaryInputSchema },
+  input: { schema: SummarizedDataSchema },
   output: { schema: GenerateMonthlySummaryOutputSchema },
+  model: 'google/gemini-pro-1.5-flash',
   prompt: `You are a friendly and insightful financial analyst for an app called "EcoVest". Your task is to create a personalized and encouraging monthly summary email for a user. The output MUST be a single HTML string, styled with inline CSS for email compatibility.
 
-Analyze the following user data for the past month:
-- Transactions: {{{transactions}}}
-- Budgets: {{{budgets}}}
-- Savings Goals: {{{goals}}}
+Analyze the following summarized user data for the past month:
+- Total Income: {{{totalIncome}}}
+- Total Expenses: {{{totalExpense}}}
+- Top Spending Categories: {{{JSON.stringify topSpendingCategories}}}
+- Budget Performance: {{{JSON.stringify budgetPerformance}}}
+- Savings Goals Progress: {{{JSON.stringify goalProgress}}}
 
 Based on this data, generate an HTML email with the following sections:
 1.  **A friendly greeting.**
@@ -72,11 +109,64 @@ const generateMonthlySummaryFlow = ai.defineFlow(
     inputSchema: GenerateMonthlySummaryInputSchema,
     outputSchema: GenerateMonthlySummaryOutputSchema,
   },
-  async input => {
-    const { output } = await prompt(input);
-     if (!output) {
-      throw new Error("Sorry, I couldn't generate a summary right now. The AI model may be temporarily unavailable.");
+  async ({ transactions, budgets, goals }) => {
+    try {
+        // 1. Calculate total income and expenses
+        const totalIncome = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
+        const totalExpense = transactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+
+        // 2. Determine top spending categories
+        const spendingByCategory = transactions.filter(t => t.type === 'expense').reduce((acc, t) => {
+            acc[t.category] = (acc[t.category] || 0) + t.amount;
+            return acc;
+        }, {} as Record<string, number>);
+
+        const topSpendingCategories = Object.entries(spendingByCategory)
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, 3)
+            .map(([category, amount]) => ({ category, amount }));
+
+        // 3. Analyze budget performance
+        const budgetPerformance = budgets.map(b => {
+            const spent = b.spent || 0;
+            const status = spent > b.amount ? 'Over Budget' : (spent / b.amount > 0.9 ? 'Nearing Limit' : 'On Track');
+            return { category: b.category, budgeted: b.amount, spent, status };
+        });
+
+        // 4. Track goal progress
+        const goalProgress = goals.map(g => ({
+            name: g.name,
+            current: g.currentAmount,
+            target: g.targetAmount,
+            progress: `${Math.round((g.currentAmount / g.targetAmount) * 100)}%`,
+        }));
+
+        const summarizedData: z.infer<typeof SummarizedDataSchema> = {
+            totalIncome,
+            totalExpense,
+            topSpendingCategories,
+            budgetPerformance,
+            goalProgress
+        };
+      
+      const { output } = await prompt(summarizedData);
+       if (!output) {
+        throw new Error("The AI model returned an empty response.");
+      }
+      return output;
+    } catch (error) {
+        console.error("Error in generateMonthlySummaryFlow:", error);
+        // Provide a fallback HTML response in case of an error.
+        return {
+            summaryHtml: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+                    <h1 style="color: #333;">Monthly Summary Error</h1>
+                    <p style="color: #555;">We're sorry, but we were unable to generate your AI-powered financial summary at this time.</p>
+                    <p style="color: #555;">This may be due to a temporary issue with our AI service or a problem processing your data. Please try again later.</p>
+                    <p style="color: #555; margin-top: 20px;">The EcoVest Team</p>
+                </div>
+            `
+        };
     }
-    return output;
   }
 );
