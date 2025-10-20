@@ -69,7 +69,7 @@ const toolsNavItems = [
 const personalNavItems = [
     { href: "/dashboard/profile", icon: User, label: "Profile" },
     { href: "/dashboard/settings", icon: Settings, label: "Settings" },
-    { href: "/dashboard/upgrade", icon: Sparkles, label: "Upgrade", isProFeature: true },
+    { href: "/dashboard/upgrade", icon: Sparkles, label: "Upgrade" },
 ]
 
 export function DashboardSidebar({ isMobile = false }) {
@@ -129,7 +129,7 @@ export function DashboardSidebar({ isMobile = false }) {
         <nav className="grid items-start px-2 text-sm font-medium lg:px-4 gap-1">
           {items.map((item) => {
              if (item.isPro && !isPro) return null;
-             const isProFeature = item.isProFeature && !isPro;
+             const isProFeature = item.label === 'Upgrade' && !isPro;
             
             return (
               <NavLink 
