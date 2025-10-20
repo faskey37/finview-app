@@ -49,7 +49,7 @@ const taxBrackets = [
     { upTo: 11000, rate: 0.10 },
     { upTo: 44725, rate: 0.12 },
     { upTo: 95375, rate: 0.22 },
-    { up to: 182100, rate: 0.24 },
+    { upTo: 182100, rate: 0.24 },
     { upTo: 231250, rate: 0.32 },
     { upTo: 578125, rate: 0.35 },
     { upTo: Infinity, rate: 0.37 },
@@ -424,7 +424,7 @@ export default function CalculatorsPage() {
     <div className="flex flex-col gap-8">
       <h1 className="text-3xl font-bold tracking-tight">Financial Calculators</h1>
       <Tabs defaultValue="loan" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="loan">Loan & EMI</TabsTrigger>
           <TabsTrigger value="sip">SIP</TabsTrigger>
           <TabsTrigger value="tax">Income Tax</TabsTrigger>
@@ -458,7 +458,7 @@ export default function CalculatorsPage() {
                 <CardHeader>
                     <CardTitle className="text-lg">Income Tax Calculator</CardTitle>
                     <CardDescription>Get a simplified estimate of your annual income tax.</CardDescription>
-                </Header>
+                </CardHeader>
                 <CardContent>
                     <IncomeTaxCalculator />
                 </CardContent>
