@@ -156,7 +156,7 @@ export default function ReportsPage() {
                     <h1 className="text-3xl font-bold tracking-tight">Reports & Analysis</h1>
                     <p className="text-muted-foreground">Dive deeper into your financial trends over time.</p>
                 </div>
-                 <Button onClick={handleGenerateSummary} disabled={isGenerating || !isPro}>
+                 <Button onClick={handleGenerateSummary} disabled={isGenerating || !isPro} className="w-full md:w-auto">
                     {isGenerating ? <><Loader2 className="animate-spin" /> Analyzing...</> : <><Sparkles /> Generate AI Summary</>}
                 </Button>
             </div>

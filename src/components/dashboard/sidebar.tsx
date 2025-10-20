@@ -24,10 +24,12 @@ import {
   User,
   CreditCard,
   Repeat,
+  Search,
+  ChevronsLeft,
 } from "lucide-react";
 import Logo from "@/components/logo";
 import { cn } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltips";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSidebar } from "@/hooks/use-sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { Input } from "../ui/input";
@@ -72,50 +74,53 @@ export function DashboardSidebar({ isMobile = false }) {
 
   const renderNavSection = (title: string, items: any[]) => (
     <>
-        <p className={cn("px-4 text-xs font-semibold uppercase text-muted-foreground tracking-wider mb-2 mt-6", isCollapsed && "text-center")}>{title}</p>
+        {!isCollapsed && <p className="px-4 text-xs font-semibold uppercase text-muted-foreground tracking-wider mb-2 mt-6">{title}</p>}
         <nav className="grid items-start px-2 text-sm font-medium lg:px-4 gap-1">
           {items.map((item) => {
             if (item.isPro && !isPro) return null;
             return (
-             <Tooltip key={item.label} delayDuration={0}>
-                <TooltipTrigger asChild>
-                    <Link
-                    href={item.href}
-                    className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-muted-foreground transition-all hover:text-foreground hover:bg-muted",
-                        pathname === item.href && "bg-muted text-foreground font-semibold",
-                        isCollapsed && "justify-center"
+             <TooltipProvider key={item.label}>
+                <Tooltip delayDuration={0}>
+                    <TooltipTrigger asChild>
+                        <Link
+                        href={item.href}
+                        className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2.5 text-muted-foreground transition-all hover:text-foreground hover:bg-muted",
+                            pathname === item.href && "bg-muted text-foreground font-semibold",
+                            isCollapsed && "justify-center"
+                        )}
+                        >
+                        <item.icon className="h-5 w-5" />
+                        <span className={cn("truncate", isCollapsed && "sr-only")}>{item.label}</span>
+                        </Link>
+                    </TooltipTrigger>
+                    {isCollapsed && (
+                    <TooltipContent side="right">
+                        <p>{item.label}</p>
+                    </TooltipContent>
                     )}
-                    >
-                    <item.icon className="h-5 w-5" />
-                    <span className={cn("truncate", isCollapsed && "sr-only")}>{item.label}</span>
-                    </Link>
-                </TooltipTrigger>
-                 {isCollapsed && (
-                  <TooltipContent side="right">
-                    <p>{item.label}</p>
-                  </TooltipContent>
-                )}
-            </Tooltip>
+                </Tooltip>
+             </TooltipProvider>
           )})}
         </nav>
     </>
   );
 
   const navContent = (
-    <TooltipProvider>
+    <>
       <div className={cn(
-          "flex h-16 items-center justify-between border-b", 
-          isCollapsed ? "justify-center px-2" : "px-4 lg:px-6"
+          "flex h-16 items-center border-b", 
+          isCollapsed ? "justify-center px-2" : "justify-between px-4 lg:px-6"
       )}>
         <Logo isCollapsed={isCollapsed} />
-        {!isMobile && (
+        {!isMobile && !isCollapsed && (
              <Button 
                 variant="ghost" 
                 size="icon" 
-                className={cn("rounded-full data-[state=open]:bg-muted", isCollapsed && "hidden")}
+                className="rounded-full data-[state=open]:bg-muted"
                 onClick={toggleSidebar}
             >
+                <ChevronsLeft />
                 <span className="sr-only">Toggle sidebar</span>
             </Button>
         )}
@@ -123,10 +128,12 @@ export function DashboardSidebar({ isMobile = false }) {
 
        <div className={cn("p-4", isCollapsed && "p-2")}>
             <div className="relative">
-                <Input placeholder="Search..." className={cn("pr-8", isCollapsed && "hidden")} />
-                 <kbd className={cn("pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100 sm:flex", isCollapsed && "hidden")}>
+                 <Search className={cn("absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground", isCollapsed && "hidden")} />
+                <Input placeholder="Search..." className={cn("pl-8 pr-12", isCollapsed && "hidden")} />
+                 <kbd className={cn("pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100 sm:flex", isCollapsed && "hidden")}>
                     <span className="text-xs">⌘</span>S
                 </kbd>
+                 <Button variant="ghost" size="icon" className={cn("absolute right-1 top-1/2 -translate-y-1/2", !isCollapsed && "hidden")}><Search/></Button>
             </div>
         </div>
 
@@ -136,21 +143,19 @@ export function DashboardSidebar({ isMobile = false }) {
         {renderNavSection("Tools", toolsNavItems)}
         {renderNavSection("Personal", personalNavItems)}
       </div>
-    </TooltipProvider>
+    </>
   );
 
   if (isMobile) {
-    return <div className="flex h-full flex-col">{navContent}</div>;
+    return <div className="flex h-full flex-col bg-card">{navContent}</div>;
   }
 
   return (
     <aside className={cn(
-        "hidden md:fixed md:inset-y-0 md:left-0 md:z-40 md:block transition-all duration-300 ease-in-out border-r",
+        "hidden md:fixed md:inset-y-0 md:left-0 md:z-40 md:flex md:flex-col transition-all duration-300 ease-in-out border-r bg-card",
         isCollapsed ? "w-20" : "w-64"
     )}>
-       <div className="flex h-full max-h-screen flex-col gap-2 bg-card">
         {navContent}
-      </div>
     </aside>
   );
 }

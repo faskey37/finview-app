@@ -12,6 +12,7 @@ import { AppLoader } from "@/components/app-loader";
 import { cn } from "@/lib/utils";
 import { NotificationContext, useRealtimeNotifications, type Notification } from "@/hooks/use-notifications";
 import { Toaster } from "@/components/ui/toaster";
+import { DashboardHeader } from "@/components/dashboard/header";
 
 function NotificationProvider({ children }: { children: ReactNode }) {
     const [notifications, setNotifications] = React.useState<Notification[]>([]);
@@ -55,12 +56,13 @@ function DashboardContent({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background">
       <DashboardSidebar />
       <div className={cn(
           "flex flex-col flex-1 transition-all duration-300 ease-in-out",
-          isCollapsed ? "md:ml-20" : "md:ml-64"
+          isCollapsed ? "md:pl-20" : "md:pl-64"
       )}>
+        <DashboardHeader />
         <main className="flex-1 overflow-y-auto no-scrollbar p-4 md:p-8">
           {children}
         </main>
