@@ -36,7 +36,7 @@ export function BudgetBreakdown({ budgets }: BudgetBreakdownProps) {
 
 
     return (
-        <Card>
+        <Card className="border shadow-sm">
             <CardHeader>
                 <div className="flex items-center justify-between">
                     <CardTitle>Remaining Monthly</CardTitle>
@@ -47,7 +47,7 @@ export function BudgetBreakdown({ budgets }: BudgetBreakdownProps) {
             </CardHeader>
             <CardContent className="grid md:grid-cols-2 gap-8">
                 <div className="flex flex-col items-center justify-center text-center">
-                    <p className="text-5xl md:text-7xl font-bold">{spentPercentage}%</p>
+                    <p className="text-5xl md:text-7xl font-bold">{totalBudget > 0 ? `${spentPercentage}%` : 'N/A'}</p>
                     <p className="text-sm text-muted-foreground">spent of {formatCurrency(totalBudget)}</p>
                     <div className="mt-4 text-center">
                         <p className="font-semibold">You're in great shape—</p>

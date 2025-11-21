@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -12,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Sparkles, Edit, CalendarIcon, BadgeCheck, Trash2, Mail, Send, Phone, Loader2, Sprout } from "lucide-react";
+import { Sparkles, Edit, CalendarIcon, BadgeCheck, Trash2, Mail, Send, Phone, Loader2, Sprout, User, Shield, Bell, CreditCard } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -42,6 +41,7 @@ import { useTransactions } from "@/hooks/use-transactions";
 import { useBudgets } from "@/hooks/use-budgets";
 import { useGoals } from "@/hooks/use-goals";
 import { ConfirmationResult } from "firebase/auth";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const profileSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -275,10 +275,12 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-       <div className="flex flex-col gap-8">
-        <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
-        <div className="space-y-8">
-            <Skeleton className="h-80 w-full" />
+       <div className="flex flex-col gap-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold tracking-tight">Profile Settings</h1>
+        </div>
+        <div className="space-y-6">
+            <Skeleton className="h-64 w-full" />
             <Skeleton className="h-48 w-full" />
         </div>
        </div>
@@ -286,298 +288,388 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
+    <div className="flex flex-col gap-6 max-w-4xl mx-auto">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight">Profile Settings</h1>
+        <Badge variant={isPro ? "default" : "secondary"} className="gap-2">
+          {isPro ? <Sparkles className="h-4 w-4" /> : <User className="h-4 w-4" />}
+          {isPro ? "Pro Plan" : "Basic Plan"}
+        </Badge>
+      </div>
 
-        <Card>
+      <Tabs defaultValue="profile" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="profile" className="flex items-center gap-2">
+            <User className="h-4 w-4" />
+            Profile
+          </TabsTrigger>
+          <TabsTrigger value="security" className="flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            Security
+          </TabsTrigger>
+          <TabsTrigger value="notifications" className="flex items-center gap-2">
+            <Bell className="h-4 w-4" />
+            Notifications
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Profile Tab */}
+        <TabsContent value="profile" className="space-y-6">
+          <Card>
             <CardHeader>
-                <CardTitle className="text-lg">Your Information</CardTitle>
-                <CardDescription>Update your personal information and manage your account.</CardDescription>
+              <CardTitle>Personal Information</CardTitle>
+              <CardDescription>Update your personal details and profile picture</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                 <div className="flex items-center gap-6">
-                    <Avatar className="h-20 w-20">
-                        <AvatarImage src={userData?.photoURL || user?.photoURL || ""} />
-                        <AvatarFallback>{user?.displayName?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
-                    </Avatar>
-                    <div className="grid gap-2">
-                        <Dialog open={photoDialogOpen} onOpenChange={setPhotoDialogOpen}>
-                            <DialogTrigger asChild>
-                                <Button variant="outline">Change Picture</Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <Form {...photoForm}>
-                                    <form onSubmit={photoForm.handleSubmit(handlePhotoUpdate)}>
-                                        <DialogHeader>
-                                            <DialogTitle>Update Profile Picture</DialogTitle>
-                                            <DialogDescription>
-                                                Enter a URL for your new profile picture.
-                                            </DialogDescription>
-                                        </DialogHeader>
-                                        <div className="py-4">
-                                            <FormField
-                                                control={photoForm.control}
-                                                name="url"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Image URL</FormLabel>
-                                                        <FormControl>
-                                                            <Input type="text" placeholder="https://example.com/image.png" {...field} />
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        </div>
-                                        <DialogFooter>
-                                            <Button type="submit" disabled={isSaving}>
-                                                {isSaving ? "Saving..." : "Save Changes"}
-                                            </Button>
-                                        </DialogFooter>
-                                    </form>
-                                </Form>
-                            </DialogContent>
-                        </Dialog>
-                         <p className="text-sm text-muted-foreground">Update your avatar from a public URL.</p>
-                    </div>
-                </div>
-
-                <div className="grid md:grid-cols-3 gap-4">
-                  <Card className="bg-muted/50">
-                      <CardHeader>
-                        <CardTitle className="text-sm font-medium flex items-center gap-2"><CalendarIcon/> Account Age</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                          <p className="text-2xl font-bold">{accountAge}</p>
-                      </CardContent>
-                  </Card>
-                   <Card className="bg-muted/50">
-                      <CardHeader>
-                        <CardTitle className="text-sm font-medium flex items-center gap-2"><BadgeCheck/> Membership</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                          <div className="text-2xl font-bold flex items-center gap-2">
-                            {userData?.isPro ? "Pro" : "Basic"}
-                             {userData?.isPro && <Sparkles className="h-6 w-6 text-primary" />}
-                          </div>
-                      </CardContent>
-                  </Card>
-                  <Card className="bg-muted/50">
-                      <CardHeader>
-                        <CardTitle className="text-sm font-medium flex items-center gap-2"><Sprout className="text-primary"/> Eco-Points</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                          <div className="text-2xl font-bold flex items-center gap-2">
-                            {userData?.ecoPoints || 0}
-                          </div>
-                      </CardContent>
-                  </Card>
-                </div>
-            
-                <Form {...profileForm}>
-                    <form onSubmit={profileForm.handleSubmit(handleProfileUpdate)} className="space-y-4">
-                        <FormField
-                            control={profileForm.control}
-                            name="name"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Display Name</FormLabel>
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-16 w-16">
+                    <AvatarImage src={userData?.photoURL || user?.photoURL || ""} />
+                    <AvatarFallback className="text-lg">
+                      {user?.displayName?.charAt(0).toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <Dialog open={photoDialogOpen} onOpenChange={setPhotoDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">Change Photo</Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-md">
+                        <Form {...photoForm}>
+                          <form onSubmit={photoForm.handleSubmit(handlePhotoUpdate)}>
+                            <DialogHeader>
+                              <DialogTitle>Update Profile Picture</DialogTitle>
+                              <DialogDescription>
+                                Enter a URL for your new profile picture.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="py-4">
+                              <FormField
+                                control={photoForm.control}
+                                name="url"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Image URL</FormLabel>
                                     <FormControl>
-                                        <Input {...field} />
+                                      <Input type="text" placeholder="https://example.com/image.png" {...field} />
                                     </FormControl>
                                     <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <Button type="submit" disabled={isSaving}>
-                            {isSaving ? "Saving..." : "Save Name"}
-                        </Button>
-                    </form>
-                </Form>
-            </CardContent>
-        </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Account Security</CardTitle>
-          <CardDescription>Manage your sign-in methods, password, and test notification settings.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-           <div className="space-y-2 p-4 border rounded-lg">
-                <label className="text-sm font-medium leading-none">Email Address</label>
-                <div className="flex items-center justify-between gap-4">
-                    <p className="text-sm text-muted-foreground">{user?.email}</p>
-                    <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
-                        <DialogTrigger asChild>
-                            <Button variant="outline" type="button"><Edit /> Change Email</Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                             <Form {...emailForm}>
-                                <form onSubmit={emailForm.handleSubmit(handleEmailUpdate)}>
-                                <DialogHeader>
-                                    <DialogTitle>Change Email Address</DialogTitle>
-                                    <DialogDescription>
-                                    Enter your new email and current password to make the change.
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <div className="space-y-4 py-4">
-                                    <FormField control={emailForm.control} name="email" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>New Email</FormLabel>
-                                        <FormControl><Input type="email" {...field} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                    )} />
-                                    <FormField control={emailForm.control} name="password" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Current Password</FormLabel>
-                                        <FormControl><Input type="password" {...field} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                    )} />
-                                </div>
-                                <DialogFooter>
-                                    <Button variant="ghost" onClick={() => setEmailDialogOpen(false)}>Cancel</Button>
-                                    <Button type="submit" disabled={isSaving}>{isSaving ? "Updating..." : "Update Email"}</Button>
-                                </DialogFooter>
-                                </form>
-                            </Form>
-                        </DialogContent>
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                            <DialogFooter>
+                              <Button type="submit" disabled={isSaving}>
+                                {isSaving ? "Saving..." : "Save Changes"}
+                              </Button>
+                            </DialogFooter>
+                          </form>
+                        </Form>
+                      </DialogContent>
                     </Dialog>
+                  </div>
                 </div>
-            </div>
-            
-            <div className="space-y-2 p-4 border rounded-lg">
-                <label className="text-sm font-medium leading-none">Phone Number</label>
-                <div className="flex items-center justify-between gap-4">
-                    <p className="text-sm text-muted-foreground">{user?.phoneNumber || "Not set"}</p>
-                     <Dialog open={phoneDialogOpen} onOpenChange={setPhoneDialogOpen}>
-                        <DialogTrigger asChild>
-                            <Button variant="outline" type="button"><Phone /> {user?.phoneNumber ? "Change" : "Link"} Phone</Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>{confirmationResult ? 'Verify Code' : 'Link Phone Number'}</DialogTitle>
-                                <DialogDescription>
-                                    {confirmationResult ? "Enter the code sent to your phone." : "Enter your phone number to receive a verification code."}
-                                </DialogDescription>
-                            </DialogHeader>
-                            {!confirmationResult ? (
-                                <Form {...phoneForm}>
-                                    <form onSubmit={phoneForm.handleSubmit(handleLinkPhone)} className="space-y-4 py-4">
-                                        <FormField control={phoneForm.control} name="phoneNumber" render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Phone Number</FormLabel>
-                                                <FormControl><Input type="tel" placeholder="+1 123 456 7890" {...field} /></FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )} />
-                                        <DialogFooter>
-                                            <Button type="submit" disabled={isSaving}>
-                                                {isSaving && <Loader2 className="animate-spin" />}
-                                                Send Code
-                                            </Button>
-                                        </DialogFooter>
-                                    </form>
-                                </Form>
-                            ) : (
-                                <Form {...otpForm}>
-                                    <form onSubmit={otpForm.handleSubmit(handleVerifyOtp)} className="space-y-4 py-4">
-                                        <FormField control={otpForm.control} name="otp" render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Verification Code</FormLabel>
-                                                <FormControl><Input type="text" placeholder="123456" {...field} /></FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )} />
-                                        <DialogFooter>
-                                            <Button type="submit" disabled={isSaving}>
-                                                {isSaving && <Loader2 className="animate-spin" />}
-                                                Verify & Link
-                                            </Button>
-                                        </DialogFooter>
-                                    </form>
-                                </Form>
-                            )}
-                        </DialogContent>
-                    </Dialog>
-                </div>
-            </div>
+              </div>
 
-            <div className="space-y-2 p-4 border rounded-lg">
-                <label className="text-sm font-medium leading-none">Password</label>
-                <div className="flex items-center justify-between gap-4">
-                    <p className="text-sm text-muted-foreground">••••••••••••</p>
-                    <Button onClick={handlePasswordReset} disabled={isSendingReset} variant="outline">
-                        {isSendingReset ? "Sending..." : "Send Reset Link"}
-                    </Button>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
+                  <CalendarIcon className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Account Age</p>
+                    <p className="text-lg font-semibold">{accountAge}</p>
+                  </div>
                 </div>
-            </div>
-            <div className="space-y-2 p-4 border rounded-lg">
-                <label className="text-sm font-medium leading-none">Test Email Notifications</label>
-                <div className="flex items-center justify-between gap-4">
-                    <p className="text-sm text-muted-foreground">Click to verify your email service is working.</p>
-                     <Button onClick={handleSendTestEmail} disabled={isSendingTestEmail} variant="outline">
-                       <Mail />
-                       {isSendingTestEmail ? "Sending..." : "Send Test Email"}
-                    </Button>
+                
+                <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
+                  <BadgeCheck className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Status</p>
+                    <p className="text-lg font-semibold">{isPro ? "Pro" : "Basic"}</p>
+                  </div>
                 </div>
-            </div>
-            <div className="space-y-2 p-4 border rounded-lg">
-                <label className="text-sm font-medium leading-none">Monthly Summary</label>
-                <div className="flex items-center justify-between gap-4">
-                    <p className="text-sm text-muted-foreground">Send an AI-generated summary of your monthly activity.</p>
-                     <Button onClick={handleSendSummary} disabled={isSendingSummary || !isPro}>
-                       <Send />
-                       {isSendingSummary ? "Sending..." : "Send Summary Email"}
-                    </Button>
+                
+                <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
+                  <Sprout className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="text-sm font-medium">Eco-Points</p>
+                    <p className="text-lg font-semibold">{userData?.ecoPoints || 0}</p>
+                  </div>
                 </div>
-            </div>
-        </CardContent>
-        <CardFooter>
-             <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive">
-                  <Trash2 />
-                  Delete My Account
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <Form {...deleteForm}>
-                   <form onSubmit={deleteForm.handleSubmit(handleDeleteAccount)}>
+              </div>
+
+              <Form {...profileForm}>
+                <form onSubmit={profileForm.handleSubmit(handleProfileUpdate)} className="space-y-4">
+                  <FormField
+                    control={profileForm.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Display Name</FormLabel>
+                        <FormControl>
+                          <div className="flex gap-2">
+                            <Input {...field} className="flex-1" />
+                            <Button type="submit" disabled={isSaving} size="sm">
+                              {isSaving ? "Saving..." : "Update"}
+                            </Button>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Security Tab */}
+        <TabsContent value="security" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Security Settings</CardTitle>
+              <CardDescription>Manage your authentication methods and account security</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Mail className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium">Email Address</p>
+                      <p className="text-sm text-muted-foreground">{user?.email}</p>
+                    </div>
+                  </div>
+                  <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Edit className="h-4 w-4 mr-2" />
+                        Change
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                      <Form {...emailForm}>
+                        <form onSubmit={emailForm.handleSubmit(handleEmailUpdate)}>
+                          <DialogHeader>
+                            <DialogTitle>Change Email Address</DialogTitle>
+                            <DialogDescription>
+                              Enter your new email and current password to make the change.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <FormField control={emailForm.control} name="email" render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>New Email</FormLabel>
+                                <FormControl>
+                                  <Input type="email" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )} />
+                            <FormField control={emailForm.control} name="password" render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Current Password</FormLabel>
+                                <FormControl>
+                                  <Input type="password" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )} />
+                          </div>
+                          <DialogFooter>
+                            <Button type="submit" disabled={isSaving}>
+                              {isSaving ? "Updating..." : "Update Email"}
+                            </Button>
+                          </DialogFooter>
+                        </form>
+                      </Form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Phone className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium">Phone Number</p>
+                      <p className="text-sm text-muted-foreground">
+                        {user?.phoneNumber || "Not linked"}
+                      </p>
+                    </div>
+                  </div>
+                  <Dialog open={phoneDialogOpen} onOpenChange={setPhoneDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Phone className="h-4 w-4 mr-2" />
+                        {user?.phoneNumber ? "Change" : "Link"}
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>{confirmationResult ? 'Verify Code' : 'Link Phone Number'}</DialogTitle>
+                        <DialogDescription>
+                          {confirmationResult ? "Enter the code sent to your phone." : "Enter your phone number to receive a verification code."}
+                        </DialogDescription>
+                      </DialogHeader>
+                      {!confirmationResult ? (
+                        <Form {...phoneForm}>
+                          <form onSubmit={phoneForm.handleSubmit(handleLinkPhone)} className="space-y-4 py-4">
+                            <FormField control={phoneForm.control} name="phoneNumber" render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Phone Number</FormLabel>
+                                <FormControl>
+                                  <Input type="tel" placeholder="+1 123 456 7890" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )} />
+                            <DialogFooter>
+                              <Button type="submit" disabled={isSaving}>
+                                {isSaving && <Loader2 className="animate-spin mr-2" />}
+                                Send Code
+                              </Button>
+                            </DialogFooter>
+                          </form>
+                        </Form>
+                      ) : (
+                        <Form {...otpForm}>
+                          <form onSubmit={otpForm.handleSubmit(handleVerifyOtp)} className="space-y-4 py-4">
+                            <FormField control={otpForm.control} name="otp" render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Verification Code</FormLabel>
+                                <FormControl>
+                                  <Input type="text" placeholder="123456" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )} />
+                            <DialogFooter>
+                              <Button type="submit" disabled={isSaving}>
+                                {isSaving && <Loader2 className="animate-spin mr-2" />}
+                                Verify & Link
+                              </Button>
+                            </DialogFooter>
+                          </form>
+                        </Form>
+                      )}
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <CreditCard className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium">Password</p>
+                      <p className="text-sm text-muted-foreground">Last updated {accountAge} ago</p>
+                    </div>
+                  </div>
+                  <Button onClick={handlePasswordReset} disabled={isSendingReset} variant="outline" size="sm">
+                    {isSendingReset ? "Sending..." : "Reset Password"}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-destructive">Danger Zone</CardTitle>
+              <CardDescription>Permanent account actions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Account
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <Form {...deleteForm}>
+                    <form onSubmit={deleteForm.handleSubmit(handleDeleteAccount)}>
                       <AlertDialogHeader>
                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This is a sensitive operation. To confirm, please enter your password. This will permanently delete your account and all associated data.
+                          This action cannot be undone. This will permanently delete your account and remove all your data from our servers.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
-                       <div className="py-4">
-                         <FormField
+                      <div className="py-4">
+                        <FormField
                           control={deleteForm.control}
                           name="password"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Password</FormLabel>
+                              <FormLabel>Confirm Password</FormLabel>
                               <FormControl>
-                                <Input type="password" {...field} />
+                                <Input type="password" placeholder="Enter your password" {...field} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-                       </div>
+                      </div>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction type="submit" disabled={isDeleting} variant="destructive">
-                          {isDeleting ? "Deleting..." : "Confirm Deletion"}
+                          {isDeleting ? "Deleting..." : "Delete Account"}
                         </AlertDialogAction>
                       </AlertDialogFooter>
-                   </form>
-                </Form>
-              </AlertDialogContent>
-            </AlertDialog>
-        </CardFooter>
-      </Card>
+                    </form>
+                  </Form>
+                </AlertDialogContent>
+              </AlertDialog>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Notifications Tab */}
+        <TabsContent value="notifications" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Email Notifications</CardTitle>
+              <CardDescription>Manage your email preferences and test delivery</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Mail className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium">Test Email Delivery</p>
+                    <p className="text-sm text-muted-foreground">Verify your email service is working</p>
+                  </div>
+                </div>
+                <Button onClick={handleSendTestEmail} disabled={isSendingTestEmail} variant="outline" size="sm">
+                  <Mail className="h-4 w-4 mr-2" />
+                  {isSendingTestEmail ? "Sending..." : "Send Test"}
+                </Button>
+              </div>
+
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Send className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium">Monthly Summary</p>
+                    <p className="text-sm text-muted-foreground">
+                      AI-generated financial summary {!isPro && "(Pro feature)"}
+                    </p>
+                  </div>
+                </div>
+                <Button 
+                  onClick={handleSendSummary} 
+                  disabled={isSendingSummary || !isPro}
+                  variant="outline" 
+                  size="sm"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  {isSendingSummary ? "Sending..." : "Send Summary"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
       <div id="recaptcha-container-profile" className="hidden"></div>
     </div>
   );
