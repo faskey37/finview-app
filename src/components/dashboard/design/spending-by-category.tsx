@@ -12,6 +12,7 @@ export function SpendingByCategory({ transactions }: { transactions: Transaction
   const categoryData = transactions
     .filter(t => t.type === 'expense')
     .reduce((acc: { [key: string]: number }, transaction) => {
+      if(!transaction.category) return acc;
       const category = transaction.category;
       acc[category] = (acc[category] || 0) + transaction.amount;
       return acc;
@@ -37,15 +38,13 @@ export function SpendingByCategory({ transactions }: { transactions: Transaction
 
   const getCategoryColor = (category: string) => {
     const colors: { [key: string]: string } = {
-      housing: "bg-blue-500",
-      transport: "bg-green-500",
-      food: "bg-amber-500",
-      shopping: "bg-purple-500",
-      entertainment: "bg-pink-500",
-      utilities: "bg-indigo-500",
-      health: "bg-red-500",
+      housing: "bg-primary",
+      transport: "bg-success",
+      food: "bg-warning",
+      shopping: "bg-destructive",
+      entertainment: "bg-info",
     };
-    return colors[category.toLowerCase()] || "bg-gray-500";
+    return colors[category.toLowerCase()] || "bg-secondary";
   };
 
   const totalExpense = Object.values(categoryData).reduce((a, b) => a + b, 0);

@@ -35,7 +35,7 @@ export function QuickInsights({ transactions, budgets }: { transactions: Transac
           if (dateParts.length < 3) return false;
           const transactionDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
           return t.type === 'expense' && 
-                 t.category.toLowerCase() === budget.category.toLowerCase() &&
+                 budget.category && t.category && t.category.toLowerCase() === budget.category.toLowerCase() &&
                  transactionDate.getMonth() === currentMonth &&
                  transactionDate.getFullYear() === currentYear;
       })
@@ -49,8 +49,8 @@ export function QuickInsights({ transactions, budgets }: { transactions: Transac
       title: "Projected Monthly Spend",
       value: formatCurrency(projectedMonthlySpending),
       description: "Based on current spending rate",
-      color: "text-orange-600",
-      bgColor: "bg-orange-100/50 dark:bg-orange-950/20"
+      color: "text-warning-foreground",
+      bgColor: "bg-warning/10"
     },
     {
       icon: AlertCircle,
@@ -58,15 +58,15 @@ export function QuickInsights({ transactions, budgets }: { transactions: Transac
       value: budgetsAtRisk.toString(),
       description: "Categories over 70% of budget",
       color: "text-destructive",
-      bgColor: "bg-red-100/50 dark:bg-red-950/20"
+      bgColor: "bg-destructive/10"
     },
     {
       icon: Zap,
       title: "Daily Average",
       value: formatCurrency(avgDailySpending),
       description: "Avg. daily spend this month",
-      color: "text-blue-600",
-      bgColor: "bg-blue-100/50 dark:bg-blue-950/20"
+      color: "text-info-foreground",
+      bgColor: "bg-info/10"
     }
   ];
 

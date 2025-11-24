@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -6,8 +5,6 @@ import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
-import { SidebarProvider, useSidebar } from "@/hooks/use-sidebar";
-import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { AppLoader } from "@/components/app-loader";
 import { cn } from "@/lib/utils";
 import { NotificationContext, useRealtimeNotifications, type Notification } from "@/hooks/use-notifications";
@@ -40,7 +37,6 @@ function NotificationProvider({ children }: { children: ReactNode }) {
 
 function DashboardContent({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
-  const { isCollapsed } = useSidebar();
   const router = useRouter();
 
   useRealtimeNotifications();
@@ -57,16 +53,10 @@ function DashboardContent({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <DashboardSidebar />
-      <div className={cn(
-          "flex flex-col flex-1 transition-all duration-300 ease-in-out",
-          isCollapsed ? "md:pl-20" : "md:pl-64"
-      )}>
-        <DashboardHeader />
-        <main className="flex-1 overflow-y-auto no-scrollbar p-4 md:p-8">
+      <DashboardHeader />
+      <main className="flex-1 overflow-y-auto no-scrollbar p-4 md:p-8 pt-20 md:pt-24">
           {children}
-        </main>
-      </div>
+      </main>
       <Toaster />
     </div>
   );
@@ -75,10 +65,8 @@ function DashboardContent({ children }: { children: ReactNode }) {
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <SidebarProvider>
       <NotificationProvider>
         <DashboardContent>{children}</DashboardContent>
       </NotificationProvider>
-    </SidebarProvider>
   );
 }

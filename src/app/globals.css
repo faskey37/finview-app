@@ -4,73 +4,79 @@
 
 @layer base {
   :root {
-    --background: 240 5% 96%;
-    --foreground: 240 10% 3.9%;
+    --background: 0 0% 100%;
+    --foreground: 224 71% 4%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card-foreground: 224 71% 4%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 142 60% 35%; /* Dark Green */
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 142 76% 46%; /* Bright Green */
-    --accent-foreground: 142 90% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 142 76% 46%;
-    --chart-1: 142 60% 35%; /* Dark Green */
-    --chart-2: 142 76% 46%; /* Bright Green */
-    --chart-3: 142 50% 55%;
-    --chart-4: 142 50% 65%;
-    --chart-5: 142 45% 75%;
-    --radius: 0.75rem; /* Increased border radius for softer corners */
-    
-    --info: 210 90% 96%;
-    --info-foreground: 210 80% 40%;
-    --success: 142 80% 96%;
-    --success-foreground: 142 70% 30%;
-    --warning: 48 90% 96%;
-    --warning-foreground: 48 80% 40%;
+    --popover-foreground: 224 71% 4%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 20% 95%;
+    --secondary-foreground: 224 71% 4%;
+    --muted: 220 14.3% 95.9%;
+    --muted-foreground: 220 9% 46.1%;
+    --accent: 159 81% 44%;
+    --accent-foreground: 224 71% 4%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 221 83% 53%;
+    --radius: 0.5rem;
+
+    --chart-1: 221 83% 53%;
+    --chart-2: 159 81% 44%;
+    --chart-3: 39 100% 56%;
+    --chart-4: 0 72% 51%;
+    --chart-5: 184 66% 66%;
+
+    --success: 159 81% 44%;
+    --success-foreground: 224 71% 4%;
+    --warning: 39 100% 56%;
+    --warning-foreground: 224 71% 4%;
+    --error: 0 72% 51%;
+    --error-foreground: 0 0% 100%;
+    --info: 221 83% 53%;
+    --info-foreground: 0 0% 100%;
   }
 
   .dark {
-    --background: 240 5% 10%;
-    --foreground: 0 0% 98%;
-    --card: 240 5% 12%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 5% 10%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 142 70% 45%;
-    --primary-foreground: 142 90% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 142 76% 46%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 20%;
-    --input: 240 3.7% 15.9%;
-    --ring: 142 76% 46%;
-    --chart-1: 142 70% 45%;
-    --chart-2: 142 76% 46%;
-    --chart-3: 142 50% 55%;
-    --chart-4: 142 50% 65%;
-    --chart-5: 142 45% 75%;
-    --radius: 0.75rem;
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 15%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 221 83% 63%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 217 33% 20%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 159 81% 54%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 63% 51%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 32.6% 17.5%;
+    --input: 217 32.6% 17.5%;
+    --ring: 221 83% 63%;
+    --radius: 0.5rem;
 
-    --info: 210 50% 12%;
-    --info-foreground: 210 80% 70%;
-    --success: 142 50% 12%;
-    --success-foreground: 142 70% 60%;
-    --warning: 48 50% 12%;
-    --warning-foreground: 48 80% 70%;
+    --chart-1: 221 83% 63%;
+    --chart-2: 159 81% 54%;
+    --chart-3: 39 100% 66%;
+    --chart-4: 0 63% 51%;
+    --chart-5: 184 66% 76%;
+    
+    --success: 159 81% 54%;
+    --success-foreground: 210 40% 98%;
+    --warning: 39 100% 66%;
+    --warning-foreground: 210 40% 98%;
+    --error: 0 63% 51%;
+    --error-foreground: 210 40% 98%;
+    --info: 221 83% 63%;
+    --info-foreground: 210 40% 98%;
   }
 }
 
