@@ -1,5 +1,9 @@
 "use client";
 import React, { useState, useMemo } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import Link from 'next/link';
 import { useTransactions } from "@/hooks/use-transactions";
 import { useBudgets } from "@/hooks/use-budgets";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -33,6 +37,8 @@ import {
   Zap,
   Crown,
   Sparkles,
+  FileText,
+  Printer
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -42,8 +48,6 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { subMonths, isAfter, format, startOfMonth, endOfMonth } from "date-fns";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-
 import { MoneyFlowChart } from "@/components/dashboard/design/money-flow-chart";
 import { BudgetBreakdown } from "@/components/dashboard/design/budget-breakdown";
 import { SavingsTips } from "@/components/dashboard/savings-tips";
@@ -54,7 +58,24 @@ import { QuickInsights } from "@/components/dashboard/design/quick-insights";
 import { RecentTransactions } from "@/components/dashboard/recent-transactions";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { addGoal } from "@/services/goals";
+import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+const goalSchema = z.object({
+  name: z.string().min(1, "Goal name is required"),
+  targetAmount: z.coerce.number().min(1, "Target amount must be greater than 0"),
+  currentAmount: z.coerce.number().min(0, "Current amount must be 0 or more"),
+  deadline: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Invalid date" }),
+});
 
 function processChartData(transactions: Transaction[], monthsToShow: number): ChartData[] {
     const monthlyData: { [key: string]: { income: number; expense: number } } = {};
@@ -86,10 +107,10 @@ function processChartData(transactions: Transaction[], monthsToShow: number): Ch
     });
     
     const months: ChartData[] = [];
-    for (let i = 0; i < monthsToShow; i++) {
+    for (let i = monthsToShow - 1; i >= 0; i--) {
         const d = subMonths(endDate, i);
         const monthName = d.toLocaleString('default', { month: 'short' });
-        months.unshift({
+        months.push({
             month: monthName,
             income: monthlyData[monthName]?.income || 0,
             expense: monthlyData[monthName]?.expense || 0,
@@ -97,6 +118,412 @@ function processChartData(transactions: Transaction[], monthsToShow: number): Ch
     }
 
     return months;
+}
+
+// Export functionality utilities
+const exportToCSV = (data: any[], headers: string[], filename: string = 'dashboard') => {
+  if (data.length === 0) return;
+
+  const csvContent = [
+    headers.join(','),
+    ...data.map(row => row.map((field: any) => `"${String(field).replace(/"/g, '""')}"`).join(','))
+  ].join('\n');
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  
+  link.setAttribute('href', url);
+  link.setAttribute('download', `${filename}-${new Date().toISOString().split('T')[0]}.csv`);
+  link.style.visibility = 'hidden';
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
+const exportToJSON = (data: any, filename: string = 'dashboard') => {
+  const exportData = {
+    exportDate: new Date().toISOString(),
+    ...data
+  };
+
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  
+  link.setAttribute('href', url);
+  link.setAttribute('download', `${filename}-${new Date().toISOString().split('T')[0]}.json`);
+  link.style.visibility = 'hidden';
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
+const printDashboard = (dashboardData: any, formatCurrency: (amount: number) => string) => {
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) return;
+
+  const { transactions, accounts, budgets, goals, stats } = dashboardData;
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Financial Dashboard Report</title>
+        <style>
+          body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            color: #333;
+          }
+          .header { 
+            text-align: center; 
+            border-bottom: 3px solid #333; 
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+          }
+          .header h1 { 
+            color: #333; 
+            margin: 0;
+            font-size: 28px;
+          }
+          .header .subtitle { 
+            color: #666; 
+            font-size: 16px;
+            margin-top: 5px;
+          }
+          .summary-grid { 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 15px; 
+            margin-bottom: 30px;
+          }
+          .stat-card { 
+            border: 1px solid #ddd; 
+            padding: 15px; 
+            border-radius: 8px;
+            text-align: center;
+            background: #f9f9f9;
+          }
+          .stat-value { 
+            font-size: 20px; 
+            font-weight: bold; 
+            margin: 5px 0;
+          }
+          .stat-label { 
+            font-size: 12px; 
+            color: #666;
+          }
+          .section { 
+            margin-bottom: 30px; 
+          }
+          .section-title { 
+            border-bottom: 2px solid #333; 
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            font-size: 18px;
+          }
+          table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 10px;
+          }
+          th, td { 
+            border: 1px solid #ddd; 
+            padding: 12px; 
+            text-align: left; 
+          }
+          th { 
+            background-color: #f5f5f5; 
+            font-weight: bold;
+          }
+          tr:nth-child(even) { 
+            background-color: #f9f9f9; 
+          }
+          .progress-bar { 
+            background: #e0e0e0; 
+            border-radius: 10px; 
+            height: 8px; 
+            margin: 5px 0;
+          }
+          .progress-fill { 
+            background: #4CAF50; 
+            height: 100%; 
+            border-radius: 10px;
+          }
+          .no-print { display: none; }
+          @media print {
+            body { margin: 0; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Financial Dashboard Report</h1>
+          <div class="subtitle">Generated on ${new Date().toLocaleString()}</div>
+        </div>
+
+        <div class="summary-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Balance</div>
+            <div class="stat-value">${formatCurrency(stats.totalBalance)}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Monthly Income</div>
+            <div class="stat-value">${formatCurrency(stats.totalIncome)}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Monthly Expenses</div>
+            <div class="stat-value">${formatCurrency(stats.totalExpense)}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Savings Rate</div>
+            <div class="stat-value">${stats.savingsRate.toFixed(1)}%</div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2 class="section-title">Recent Transactions</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Description</th>
+                <th>Category</th>
+                <th>Amount</th>
+                <th>Type</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${transactions.slice(0, 10).map((t: Transaction) => `
+                <tr>
+                  <td>${new Date(t.date).toLocaleDateString()}</td>
+                  <td>${t.description || 'N/A'}</td>
+                  <td>${t.category || 'Uncategorized'}</td>
+                  <td>${formatCurrency(t.amount)}</td>
+                  <td>${t.type?.charAt(0).toUpperCase() + t.type?.slice(1)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section">
+          <h2 class="section-title">Budget Overview</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Budget</th>
+                <th>Spent</th>
+                <th>Remaining</th>
+                <th>Progress</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${budgets.map((budget: any) => {
+                const progress = budget.amount > 0 ? (budget.spent / budget.amount) * 100 : 0;
+                return `
+                  <tr>
+                    <td>${budget.category}</td>
+                    <td>${formatCurrency(budget.amount)}</td>
+                    <td>${formatCurrency(budget.spent)}</td>
+                    <td>${formatCurrency(budget.amount - budget.spent)}</td>
+                    <td>
+                      <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${Math.min(progress, 100)}%"></div>
+                      </div>
+                      ${progress.toFixed(1)}%
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section">
+          <h2 class="section-title">Financial Goals</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Goal</th>
+                <th>Target</th>
+                <th>Current</th>
+                <th>Progress</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${goals.slice(0, 5).map((goal: Goal) => {
+                const progress = goal.targetAmount > 0 ? (goal.currentAmount / goal.targetAmount) * 100 : 0;
+                return `
+                  <tr>
+                    <td>${goal.name}</td>
+                    <td>${formatCurrency(goal.targetAmount)}</td>
+                    <td>${formatCurrency(goal.currentAmount)}</td>
+                    <td>
+                      <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${Math.min(progress, 100)}%"></div>
+                      </div>
+                      ${progress.toFixed(1)}%
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="no-print" style="margin-top: 30px; text-align: center;">
+          <button onclick="window.print()" style="padding: 12px 24px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+            Print Report
+          </button>
+          <button onclick="window.close()" style="padding: 12px 24px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-left: 10px;">
+            Close
+          </button>
+        </div>
+      </body>
+    </html>
+  `);
+  
+  printWindow.document.close();
+};
+
+// Enhanced Export Component
+function ExportDashboard({ 
+  transactions, 
+  accounts, 
+  budgets, 
+  goals, 
+  stats,
+  timeRange,
+  formatCurrency,
+}: { 
+  transactions: Transaction[];
+  accounts: any[];
+  budgets: any[];
+  goals: Goal[];
+  stats: any;
+  timeRange: string;
+  formatCurrency: (amount: number) => string;
+}) {
+  const { toast } = useToast();
+  const [exporting, setExporting] = React.useState(false);
+
+  const handleExport = async (format: 'csv' | 'json' | 'print') => {
+    if (transactions.length === 0 && format !== 'print') {
+      toast({
+        variant: "destructive",
+        title: "No data to export",
+        description: "There is no data available for export.",
+      });
+      return;
+    }
+
+    setExporting(true);
+    
+    try {
+      switch (format) {
+        case 'csv':
+          // Export transactions to CSV
+          const transactionHeaders = ['Date', 'Description', 'Category', 'Type', 'Amount', 'Account'];
+          const transactionData = transactions.map(t => {
+            const account = accounts.find(acc => acc.id === t.accountId);
+            return [
+              new Date(t.date).toLocaleDateString(),
+              t.description || 'N/A',
+              t.category || 'Uncategorized',
+              t.type?.charAt(0).toUpperCase() + t.type?.slice(1) || 'N/A',
+              t.amount.toString(),
+              account?.provider || 'Unknown Account',
+            ];
+          });
+          exportToCSV(transactionData, transactionHeaders, `transactions-${timeRange}`);
+          break;
+
+        case 'json':
+          // Export comprehensive dashboard data
+          const dashboardData = {
+            summary: {
+              totalBalance: stats.totalBalance,
+              totalIncome: stats.totalIncome,
+              totalExpense: stats.totalExpense,
+              savingsRate: stats.savingsRate,
+              transactionCount: transactions.length,
+              accountCount: accounts.length,
+              budgetCount: budgets.length,
+              goalCount: goals.length
+            },
+            transactions: transactions.slice(0, 100), // Limit to prevent huge files
+            accounts: accounts,
+            budgets: budgets,
+            goals: goals
+          };
+          exportToJSON(dashboardData, `dashboard-${timeRange}`);
+          break;
+
+        case 'print':
+          printDashboard({
+            transactions,
+            accounts,
+            budgets,
+            goals,
+            stats: {
+              totalBalance: stats.totalBalance,
+              totalIncome: stats.totalIncome,
+              totalExpense: stats.totalExpense,
+              savingsRate: stats.savingsRate
+            }
+          }, formatCurrency);
+          break;
+      }
+      
+      toast({
+        title: "Export successful",
+        description: `Dashboard data exported as ${format.toUpperCase()}`,
+        variant: "default"
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        variant: "destructive",
+        title: "Export failed",
+        description: "Failed to export data. Please try again.",
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" disabled={exporting}>
+          <Download className="h-4 w-4 mr-2" />
+          {exporting ? "Exporting..." : "Export"}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => handleExport('csv')}>
+          <FileText className="h-4 w-4 mr-2" />
+          Export as CSV
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleExport('json')}>
+          <FileText className="h-4 w-4 mr-2" />
+          Export as JSON
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleExport('print')}>
+          <Printer className="h-4 w-4 mr-2" />
+          Print Report
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }
 
 // Enhanced User Welcome Header
@@ -107,20 +534,20 @@ function UserWelcome() {
 
   return (
     <div className="flex items-center justify-between">
-      <div className="space-y-2 min-w-0 flex-1">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
+      <div className="space-y-1 min-w-0 flex-1">
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
             {greeting}, {userData?.displayName?.split(' ')[0] || 'User'}!
           </h1>
           {isPro && (
-            <Badge variant="default" className="bg-gradient-to-r from-primary to-purple-600">
+            <Badge variant="default" className="bg-gradient-to-r from-primary to-purple-600 text-xs">
               <Crown className="h-3 w-3 mr-1" />
               Pro
             </Badge>
           )}
         </div>
-        <p className="text-lg sm:text-xl text-muted-foreground">Here's your financial overview</p>
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+        <p className="text-sm sm:text-base text-muted-foreground">Here's your financial overview</p>
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span>{format(new Date(), 'EEEE, MMMM do')}</span>
           <span>•</span>
           <span>Week {Math.ceil((new Date().getDate() + new Date(startOfMonth(new Date())).getDay()) / 7)}</span>
@@ -131,9 +558,7 @@ function UserWelcome() {
 }
 
 // Balance Visibility Toggle Component
-function BalanceVisibilityToggle() {
-  const [showBalance, setShowBalance] = useState(true);
-
+function BalanceVisibilityToggle({ showBalance, setShowBalance }: { showBalance: boolean, setShowBalance: (show: boolean) => void }) {
   return (
     <div className="flex items-center gap-2">
       <Label htmlFor="balance-toggle" className="text-sm text-muted-foreground cursor-pointer">
@@ -143,16 +568,18 @@ function BalanceVisibilityToggle() {
         id="balance-toggle"
         checked={showBalance}
         onCheckedChange={setShowBalance}
+        className="scale-90"
       />
     </div>
   );
 }
 
-// Enhanced Stats Overview with better visual design
-function StatsOverview({ totalIncome, totalExpense, totalBalance }: { 
+// Enhanced Stats Overview with compact design
+function StatsOverview({ totalIncome, totalExpense, totalBalance, showBalance }: { 
   totalIncome: number; 
   totalExpense: number; 
   totalBalance: number;
+  showBalance: boolean;
 }) {
   const { formatCurrency } = useCurrency();
   
@@ -162,8 +589,8 @@ function StatsOverview({ totalIncome, totalExpense, totalBalance }: {
   const stats = [
     {
       title: "Total Balance",
-      value: formatCurrency(totalBalance),
-      description: "Across all accounts",
+      value: showBalance ? formatCurrency(totalBalance) : '••••••',
+      description: "All accounts",
       icon: Wallet,
       trend: 12.5,
       trendDirection: "up" as const,
@@ -172,7 +599,7 @@ function StatsOverview({ totalIncome, totalExpense, totalBalance }: {
     },
     {
       title: "Monthly Income",
-      value: formatCurrency(totalIncome),
+      value: showBalance ? formatCurrency(totalIncome) : '••••••',
       description: "This month",
       icon: TrendingUp,
       trend: 8.2,
@@ -182,7 +609,7 @@ function StatsOverview({ totalIncome, totalExpense, totalBalance }: {
     },
     {
       title: "Monthly Expenses",
-      value: formatCurrency(totalExpense),
+      value: showBalance ? formatCurrency(totalExpense) : '••••••',
       description: "This month",
       icon: TrendingDown,
       trend: 3.1,
@@ -192,8 +619,8 @@ function StatsOverview({ totalIncome, totalExpense, totalBalance }: {
     },
     {
       title: "Savings Rate",
-      value: `${savingsRate.toFixed(1)}%`,
-      description: "Of monthly income",
+      value: showBalance ? `${savingsRate.toFixed(1)}%` : '•••%',
+      description: "Of income",
       icon: PiggyBank,
       trend: 15.7,
       trendDirection: "up" as const,
@@ -203,34 +630,34 @@ function StatsOverview({ totalIncome, totalExpense, totalBalance }: {
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
       {stats.map((stat, index) => (
-        <Card key={index} className="card hover:shadow-md transition-all duration-300 group">
-          <CardContent className="p-6">
+        <Card key={index} className="hover:shadow-md transition-all duration-200 group">
+          <CardContent className="p-3">
             <div className="flex items-start justify-between">
-              <div className="space-y-3 flex-1">
-                <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                <p className={cn('text-2xl font-bold', stat.color)}>
+              <div className="space-y-1 flex-1">
+                <p className="text-xs font-medium text-muted-foreground">{stat.title}</p>
+                <p className={'text-lg font-bold'}>
                   {stat.value}
                 </p>
-                <div className="flex items-center gap-2">
-                  <div className={cn('flex items-center gap-1 px-2 py-1 rounded-full text-xs',
+                <div className="flex items-center gap-1">
+                  <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs ${
                     stat.trendDirection === "up" 
-                      ? "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-300" 
-                      : "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-300"
-                  )}>
+                      ? "bg-green-100 text-green-700 dark:bg-green-900/20" 
+                      : "bg-red-100 text-red-700 dark:bg-red-900/20"
+                  }`}>
                     {stat.trendDirection === "up" ? (
-                      <ArrowUpRight className="h-3 w-3" />
+                      <ArrowUpRight className="h-2.5 w-2.5" />
                     ) : (
-                      <ArrowDownRight className="h-3 w-3" />
+                      <ArrowDownRight className="h-2.5 w-2.5" />
                     )}
                     <span className="font-medium">{stat.trend}%</span>
                   </div>
                   <span className="text-xs text-muted-foreground">{stat.description}</span>
                 </div>
               </div>
-              <div className={cn('p-3 rounded-lg group-hover:scale-110 transition-transform duration-300', stat.bgColor)}>
-                <stat.icon className={cn('h-6 w-6', stat.color)} />
+              <div className={`p-2 rounded-lg group-hover:scale-105 transition-transform duration-200 ${stat.bgColor}`}>
+                <stat.icon className={`h-4 w-4 ${stat.color}`} />
               </div>
             </div>
           </CardContent>
@@ -244,7 +671,7 @@ function StatsOverview({ totalIncome, totalExpense, totalBalance }: {
 function UpcomingBills({ transactions }: { transactions: Transaction[] }) {
   const { formatCurrency } = useCurrency();
   const upcomingBills = transactions
-    .filter(t => t.type === 'expense' && new Date(t.date) > new Date())
+    .filter(t => t.type === 'expense' && t.date && new Date(t.date) > new Date())
     .slice(0, 3);
 
   if (upcomingBills.length === 0) {
@@ -297,7 +724,6 @@ function UpcomingBills({ transactions }: { transactions: Transaction[] }) {
         <Button variant="outline" className="w-full" asChild>
           <Link href="/dashboard/transactions">
             View All Bills
-            <ArrowRight className="h-4 w-4 ml-2" />
           </Link>
         </Button>
       </CardFooter>
@@ -354,9 +780,9 @@ function FinancialAlerts({ budgets, goals }: { budgets: any[], goals: Goal[] }) 
       <CardContent className="space-y-3">
         {alerts.map((alert, index) => (
           <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
-            <alert.icon className={cn('h-4 w-4 mt-0.5',
+            <alert.icon className={`h-4 w-4 mt-0.5 ${
               alert.type === 'warning' ? 'text-warning' : 'text-success'
-            )} />
+            }`} />
             <div className="flex-1">
               <p className="font-medium text-sm">{alert.title}</p>
               <p className="text-xs text-muted-foreground">{alert.message}</p>
@@ -369,125 +795,95 @@ function FinancialAlerts({ budgets, goals }: { budgets: any[], goals: Goal[] }) 
   );
 }
 
-// Enhanced Quick Actions with better styling
-function QuickActions({ onAddTransactionClick }: { onAddTransactionClick: () => void }) {
+// Enhanced Quick Actions with compact design
+function QuickActions({ onAddTransactionClick, showBalance, setShowBalance }: { onAddTransactionClick: () => void, showBalance: boolean, setShowBalance: (show: boolean) => void }) {
   const router = useRouter();
   const { isPro } = useAuth();
 
-  const handleActionClick = (label: string) => {
-    switch (label) {
-      case "Add Transaction":
-        onAddTransactionClick();
-        break;
-      case "Set Goal":
-        router.push("/dashboard/goals");
-        break;
-      case "View Reports":
-        router.push("/dashboard/reports");
-        break;
-      case "AI Assistant":
-        router.push("/dashboard/assistant");
-        break;
-      case "Net Worth":
-        router.push("/dashboard/net-worth");
-        break;
-      default:
-        break;
-    }
+  const handleActionClick = (path: string) => {
+    router.push(path);
   };
   
   const actions = [
     { 
       icon: Plus, 
       label: "Add Transaction", 
-      description: "Record new spending", 
+      description: "Record spending", 
       color: "bg-primary",
-      pro: false
+      pro: false,
+      onClick: onAddTransactionClick
     },
     { 
       icon: Target, 
       label: "Set Goal", 
-      description: "Create savings goal", 
+      description: "Savings goal", 
       color: "bg-warning",
-      pro: false
+      pro: false,
+      onClick: () => handleActionClick("/dashboard/goals")
     },
     { 
       icon: BarChart3, 
-      label: "View Reports", 
-      description: "See detailed reports", 
+      label: "Reports", 
+      description: "View analytics", 
       color: "bg-info",
-      pro: false
+      pro: false,
+      onClick: () => handleActionClick("/dashboard/reports")
     },
-     { 
+    { 
       icon: PieChart, 
       label: "Net Worth", 
-      description: "Track your growth", 
+      description: "Track growth", 
       color: "bg-blue-500",
-      pro: false
+      pro: false,
+      onClick: () => handleActionClick("/dashboard/net-worth")
     },
     { 
       icon: Zap, 
       label: "AI Assistant", 
-      description: "Get financial insights", 
+      description: "Get insights", 
       color: "bg-purple-500",
-      pro: true
+      pro: true,
+      onClick: () => handleActionClick("/dashboard/assistant")
     },
   ];
 
   return (
-    <Card className="card bg-background">
-      <CardHeader className="pb-4">
+    <Card className="card">
+      <CardHeader className="card-header-compact">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-              <Zap className="h-5 w-5 text-warning" />
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Zap className="h-4 w-4 text-warning" />
               Quick Actions
             </CardTitle>
-            <CardDescription>Frequently used actions to manage your finances</CardDescription>
+            <CardDescription className="text-xs">Manage your finances</CardDescription>
           </div>
-          <BalanceVisibilityToggle />
+          <BalanceVisibilityToggle showBalance={showBalance} setShowBalance={setShowBalance} />
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      <CardContent className="card-content-compact">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
           {actions.map((action, index) => {
-            if (action.pro && !isPro) {
-              return (
-                <Button
-                  key={index}
-                  variant="outline"
-                  className="h-24 flex flex-col justify-center items-center gap-2 border-dashed bg-muted/30"
-                  asChild
-                >
-                  <Link href="/dashboard/upgrade">
-                    <div className="p-2 rounded-lg bg-muted text-muted-foreground relative">
-                      <action.icon className="h-4 w-4" />
-                      <Crown className="h-3 w-3 absolute -top-1 -right-1 text-warning" />
-                    </div>
-                    <div className="space-y-1 min-w-0 w-full text-center">
-                      <span className="text-xs font-semibold truncate block">{action.label}</span>
-                      <Badge variant="secondary" className="text-xs">
-                        Pro
-                      </Badge>
-                    </div>
-                  </Link>
-                </Button>
-              );
-            }
+            const effectiveOnClick = action.pro && !isPro 
+              ? () => handleActionClick("/dashboard/upgrade")
+              : action.onClick;
 
             return (
               <Button
                 key={index}
                 variant="outline"
-                onClick={() => handleActionClick(action.label)}
-                className="h-24 flex flex-col justify-center items-center gap-2 hover:scale-105 transition-all duration-200 border hover:border-primary/20 bg-background min-w-0 group"
+                onClick={effectiveOnClick}
+                className="h-16 flex flex-col justify-center items-center gap-1 hover:scale-105 transition-all duration-200 border hover:border-primary/20 bg-background p-1 min-w-0 group"
               >
-                <div className={cn("p-2 rounded-lg text-white shadow-md flex-shrink-0 group-hover:scale-110 transition-transform", action.color)}>
-                  <action.icon className="h-4 w-4" />
+                <div className={`p-1.5 rounded text-white shadow-sm flex-shrink-0 group-hover:scale-110 transition-transform ${action.color}`}>
+                  <action.icon className="h-3 w-3" />
+                   {action.pro && !isPro && (
+                      <Crown className="h-2 w-2 absolute -top-0.5 -right-0.5 text-warning" />
+                    )}
                 </div>
-                <div className="space-y-1 min-w-0 w-full text-center">
+                <div className="space-y-0.5 min-w-0 w-full text-center">
                   <span className="text-xs font-semibold truncate block">{action.label}</span>
-                  <span className="text-xs text-muted-foreground truncate block">{action.description}</span>
+                  <span className="text-[10px] text-muted-foreground truncate block">{action.description}</span>
                 </div>
               </Button>
             );
@@ -497,7 +893,6 @@ function QuickActions({ onAddTransactionClick }: { onAddTransactionClick: () => 
     </Card>
   );
 }
-
 
 // New: Monthly Progress Component
 function MonthlyProgress({ totalIncome, totalExpense, budgets }: { 
@@ -556,17 +951,59 @@ function MonthlyProgress({ totalIncome, totalExpense, budgets }: {
   );
 }
 
+function FinancialGoalsCard({ goals, onAddNewGoal }: { goals: Goal[], onAddNewGoal: () => void }) {
+    const { formatCurrency } = useCurrency();
+    return (
+        <Card className="card">
+            <CardHeader>
+                <CardTitle>Financial Goals</CardTitle>
+                <CardDescription>Track your savings targets</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-4">
+                    {goals.slice(0, 3).map((goal, index) => {
+                        const progress = goal.targetAmount > 0 ? (goal.currentAmount / goal.targetAmount) * 100 : 0;
+                        return (
+                            <div key={index} className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="font-medium text-sm">{goal.name}</span>
+                                    <span className="text-sm text-muted-foreground">
+                                        {formatCurrency(goal.currentAmount)} / {formatCurrency(goal.targetAmount)}
+                                    </span>
+                                </div>
+                                <Progress value={progress} className="h-2" />
+                                <div className="flex justify-between text-xs text-muted-foreground">
+                                    <span>{progress.toFixed(1)}% achieved</span>
+                                    <span>{formatCurrency(goal.targetAmount - goal.currentAmount)} to go</span>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </CardContent>
+            <CardFooter>
+                <Button variant="outline" className="w-full" onClick={onAddNewGoal}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create New Goal
+                </Button>
+            </CardFooter>
+        </Card>
+    )
+}
+
 export default function DashboardPage() {
   const { transactions, loading: transactionsLoading } = useTransactions();
   const { budgets, loading: budgetsLoading } = useBudgets();
   const { goals, loading: goalsLoading } = useGoals();
   const { accounts, loading: accountsLoading } = useAccounts();
-  const { loading: authLoading, isPro } = useAuth();
-  const { formatCurrency } = useCurrency();
+  const { isPro, loading: authLoading } = useAuth();
+  const { toast, formatCurrency } = useCurrency();
 
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [goalDialogOpen, setGoalDialogOpen] = useState(false);
   const [timeRange, setTimeRange] = useState('monthly');
   const [chartTimeRange, setChartTimeRange] = useState('6M');
+  const [showBalance, setShowBalance] = useState(true);
 
   const loading = transactionsLoading || budgetsLoading || goalsLoading || accountsLoading || authLoading;
 
@@ -589,23 +1026,6 @@ export default function DashboardPage() {
     });
   }, [transactions, timeRange]);
   
-  const handleExport = () => {
-    const headers = ["ID", "Date", "Description", "Amount", "Type", "Category"];
-    const csvContent = [
-      headers.join(","),
-      ...filteredTransactions.map(t => [t.id, t.date, `"${t.description}"`, t.amount, t.type, t.category].join(","))
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `transactions-${timeRange}-${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-  
   const chartData = useMemo(() => {
     const months = chartTimeRange === '3M' ? 3 : chartTimeRange === '1Y' ? 12 : 6;
     return processChartData(transactions, months);
@@ -623,12 +1043,43 @@ export default function DashboardPage() {
     account.type !== 'Credit Card' ? acc + account.balance : acc - account.balance, 0
   );
 
+  const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpense) / totalIncome) * 100 : 0;
+
   const budgetWithSpent = budgets.map(budget => {
     const spent = filteredTransactions
       .filter(t => t.type === 'expense' && budget.category && t.category && t.category.toLowerCase() === budget.category.toLowerCase())
       .reduce((acc, t) => acc + t.amount, 0);
     return { ...budget, spent };
   });
+
+  const stats = {
+    totalBalance,
+    totalIncome,
+    totalExpense,
+    savingsRate
+  };
+
+  const goalForm = useForm<z.infer<typeof goalSchema>>({
+    resolver: zodResolver(goalSchema),
+    defaultValues: {
+      name: "",
+      targetAmount: 1000,
+      currentAmount: 0,
+      deadline: format(new Date(), 'yyyy-MM-dd')
+    },
+  });
+
+  async function handleAddGoal(values: z.infer<typeof goalSchema>) {
+    try {
+      await addGoal(values);
+      goalForm.reset();
+      setGoalDialogOpen(false);
+      toast({ title: "Success", description: "Goal added successfully." });
+    } catch (error) {
+      console.error("Error adding goal:", error);
+      toast({ variant: "destructive", title: "Error", description: "Failed to add goal." });
+    }
+  }
 
   if (loading) {
     return (
@@ -653,6 +1104,65 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
+       <Dialog open={goalDialogOpen} onOpenChange={setGoalDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create a New Goal</DialogTitle>
+            <DialogDescription>Set a target and a deadline to motivate your savings.</DialogDescription>
+          </DialogHeader>
+          <Form {...goalForm}>
+            <form onSubmit={goalForm.handleSubmit(handleAddGoal)} className="space-y-4 py-4">
+              <FormField
+                control={goalForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Goal Name</FormLabel>
+                    <FormControl><Input placeholder="e.g., New Laptop" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={goalForm.control}
+                name="targetAmount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Target Amount</FormLabel>
+                    <FormControl><Input type="number" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={goalForm.control}
+                name="currentAmount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Current Amount Saved</FormLabel>
+                    <FormControl><Input type="number" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={goalForm.control}
+                name="deadline"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Deadline</FormLabel>
+                    <FormControl><Input type="date" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="submit">Add Goal</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
       <main className="p-4 sm:p-6 space-y-6 max-w-screen-xl mx-auto">
         {/* Header Section */}
         <UserWelcome />
@@ -665,19 +1175,26 @@ export default function DashboardPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="weekly">This Week</SelectItem>
-                <SelectItem value="monthly">This Month</SelectItem>
-                <SelectItem value="yearly">This Year</SelectItem>
+                <SelectItem value="weekly">Weekly</SelectItem>
+                <SelectItem value="monthly">Monthly</SelectItem>
+                <SelectItem value="yearly">Yearly</SelectItem>
               </SelectContent>
             </Select>
-            <Button className="w-full sm:w-auto" onClick={handleExport}>
-              <Download className="h-4 w-4 mr-2" />
-              Export Report
-            </Button>
+            
+            {/* Export Component */}
+            <ExportDashboard 
+              transactions={filteredTransactions}
+              accounts={accounts}
+              budgets={budgetWithSpent}
+              goals={goals as Goal[]}
+              stats={stats}
+              timeRange={timeRange}
+              formatCurrency={formatCurrency}
+            />
           </div>
-          {!isPro && (
+          {isPro === false && (
             <Button variant="outline" className="border-primary/20 text-primary" asChild>
-              <Link href="/dashboard/upgrade">
+               <Link href="/dashboard/upgrade">
                 <Sparkles className="h-4 w-4 mr-2" />
                 Upgrade to Pro
               </Link>
@@ -693,10 +1210,11 @@ export default function DashboardPage() {
           totalIncome={totalIncome}
           totalExpense={totalExpense}
           totalBalance={totalBalance}
+          showBalance={showBalance}
         />
 
         {/* Quick Actions */}
-        <QuickActions onAddTransactionClick={() => setAddDialogOpen(true)} />
+        <QuickActions onAddTransactionClick={() => setAddDialogOpen(true)} showBalance={showBalance} setShowBalance={setShowBalance} />
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -724,23 +1242,20 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Spending by Category */}
-            <SpendingByCategory transactions={filteredTransactions} />
-
-            {/* Budget Breakdown */}
-            <BudgetBreakdown budgets={budgetWithSpent} />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <SpendingByCategory transactions={filteredTransactions} />
+              <BudgetBreakdown budgets={budgetWithSpent} />
+            </div>
           </div>
 
           {/* Right Column - Sidebar */}
           <div className="space-y-6">
-            {/* Monthly Progress */}
             <MonthlyProgress 
               totalIncome={totalIncome}
               totalExpense={totalExpense}
               budgets={budgetWithSpent}
             />
 
-            {/* Upcoming Bills */}
             <UpcomingBills transactions={transactions} />
             
             <FinancialHealthScoreCard 
@@ -750,13 +1265,16 @@ export default function DashboardPage() {
               goals={goals as Goal[]}
               budgets={budgetWithSpent}
             />
+
+            <QuickInsights transactions={filteredTransactions} budgets={budgets} />
           </div>
         </div>
 
-        {/* Transaction History and Goals */}
+        {/* Bottom Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <RecentTransactions transactions={filteredTransactions} setAddDialogOpen={setAddDialogOpen} addDialogOpen={addDialogOpen} />
+          <RecentTransactions transactions={filteredTransactions} accounts={accounts} setAddDialogOpen={setAddDialogOpen} addDialogOpen={addDialogOpen} />
           <SavingsTips transactions={filteredTransactions} />
+          <FinancialGoalsCard goals={goals as Goal[]} onAddNewGoal={() => setGoalDialogOpen(true)} />
         </div>
       </main>
     </div>

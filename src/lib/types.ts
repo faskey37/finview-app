@@ -7,6 +7,7 @@ export type Transaction = {
   type: 'income' | 'expense';
   category: string;
   userId?: string;
+  accountId?: string;
 };
 
 export type Budget = {
@@ -35,6 +36,8 @@ export type Account = {
     provider: string;
     balance: number;
     userId?: string;
+    accountNumber?: string;
+    color?: string;
 }
 
 export type UserData = {

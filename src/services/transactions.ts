@@ -2,16 +2,14 @@ import { db, auth } from '@/lib/firebase';
 import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import type { Transaction } from '@/lib/types';
 
-const getTransactionsCollection = () => {
-    const userId = auth.currentUser?.uid;
-    if (!userId) throw new Error("User not logged in");
-    return collection(db, 'users', userId, 'transactions');
-}
-
 // Add a new transaction
-export const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
+export const addTransaction = async (transaction: Omit<Transaction, 'id' | 'userId'>) => {
+  const userId = auth.currentUser?.uid;
+  if (!userId) throw new Error("User not logged in. Cannot add transaction.");
+  
   try {
-    const docRef = await addDoc(getTransactionsCollection(), transaction);
+    const transactionsCollection = collection(db, 'users', userId, 'transactions');
+    const docRef = await addDoc(transactionsCollection, { ...transaction, userId });
     return docRef.id;
   } catch (e) {
     console.error("Error adding document: ", e);
@@ -19,35 +17,38 @@ export const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
   }
 };
 
-// Get real-time updates on transactions or a one-time fetch
-export const getTransactions = (callback: (transactions: Transaction[]) => void): (() => void) => {
-    if (!auth.currentUser) {
-        callback([]);
-        return () => {};
-    }
-    const transactionsCollection = getTransactionsCollection();
-    const q = query(transactionsCollection, orderBy('date', 'desc'));
-  
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const transactions: Transaction[] = [];
-        querySnapshot.forEach((doc) => {
-        transactions.push({  ...doc.data(),id: doc.id, } as Transaction);
-        });
-        callback(transactions);
-    }, (error) => {
-        console.error("Error fetching transactions:", error);
-    });
+// Get real-time updates on transactions
+export const getTransactions = (callback: (transactions: Transaction[]) => void, errorCallback: (error: Error) => void) => {
+  const user = auth.currentUser;
+  if (!user) {
+    callback([]);
+    return () => {}; // Return an empty unsubscribe function
+  }
 
-    return unsubscribe;
+  const transactionsCollection = collection(db, 'users', user.uid, 'transactions');
+  const q = query(transactionsCollection, orderBy('date', 'desc'));
+
+  const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const transactions: Transaction[] = [];
+    querySnapshot.forEach((doc) => {
+      transactions.push({ id: doc.id, ...doc.data() } as Transaction);
+    });
+    callback(transactions);
+  }, (error) => {
+    console.error("Error fetching transactions:", error);
+    errorCallback(error);
+  });
+
+  return unsubscribe;
 };
 
-// Delete a transaction - FIXED
+
+// Delete a transaction
 export const deleteTransaction = async (id: string) => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) throw new Error("User not logged in. Cannot delete transaction.");
+    
     try {
-        const userId = auth.currentUser?.uid;
-        if (!userId) throw new Error("User not logged in");
-        
-        // Create document reference using path segments directly
         const docRef = doc(db, 'users', userId, 'transactions', id);
         await deleteDoc(docRef);
     } catch (e) {

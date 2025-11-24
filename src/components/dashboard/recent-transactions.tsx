@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -60,13 +59,16 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import type { Transaction } from "@/lib/types"
+import type { Account, Transaction } from "@/lib/types"
 import { addTransaction, deleteTransaction } from "@/services/transactions"
 import { useToast } from "@/hooks/use-toast"
 import { useCurrency } from "@/hooks/use-currency"
 
 interface RecentTransactionsProps {
-  transactions: Transaction[]
+  transactions: Transaction[];
+  accounts: Account[];
+  addDialogOpen: boolean;
+  setAddDialogOpen: (open: boolean) => void;
 }
 
 const transactionSchema = z.object({
@@ -74,11 +76,11 @@ const transactionSchema = z.object({
   amount: z.coerce.number().min(0.01, "Amount must be positive").max(1000000000, "Amount is too large"),
   type: z.enum(["income", "expense"]),
   category: z.string().min(1, "Category is required"),
+  accountId: z.string().min(1, "Account is required"),
   date: z.string().optional(),
 })
 
-export function RecentTransactions({ transactions }: RecentTransactionsProps) {
-  const [addDialogOpen, setAddDialogOpen] = React.useState(false)
+export function RecentTransactions({ transactions, accounts, addDialogOpen, setAddDialogOpen }: RecentTransactionsProps) {
   const [isDeleting, setIsDeleting] = React.useState(false)
   const { toast } = useToast()
   const { formatCurrency, currency, convertToBaseCurrency } = useCurrency();
@@ -90,17 +92,17 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
       amount: 0,
       type: "expense",
       category: "",
+      accountId: "",
     },
   })
 
   async function handleAddTransaction(values: z.infer<typeof transactionSchema>) {
     try {
-      // Convert the user-entered amount from their current currency back to the base currency (USD) before saving.
       const baseAmount = convertToBaseCurrency(values.amount, currency);
 
       await addTransaction({
         ...values,
-        amount: baseAmount, // Save the base amount
+        amount: baseAmount,
         date: new Date().toLocaleDateString('en-CA')
       });
       form.reset();
@@ -138,7 +140,7 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
           <DialogTrigger asChild>
             <Button size="sm" className="gap-1">
               <PlusCircle />
-              Add Transaction
+              Add
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -168,6 +170,28 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
                         </SelectContent>
                       </Select>
                       <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="accountId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Account</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select an account" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {accounts.map(account => (
+                              <SelectItem key={account.id} value={account.id}>{account.provider}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                       <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -210,15 +234,15 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="food">Food</SelectItem>
-                          <SelectItem value="transport">Transport</SelectItem>
-                          <SelectItem value="shopping">Shopping</SelectItem>
-                          <SelectItem value="housing">Housing</SelectItem>
-                          <SelectItem value="entertainment">Entertainment</SelectItem>
-                          <SelectItem value="health">Health</SelectItem>
-                          <SelectItem value="salary">Salary</SelectItem>
-                          <SelectItem value="freelance">Freelance</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
+                          <SelectItem value="Food">Food</SelectItem>
+                          <SelectItem value="Transport">Transport</SelectItem>
+                          <SelectItem value="Shopping">Shopping</SelectItem>
+                          <SelectItem value="Housing">Housing</SelectItem>
+                          <SelectItem value="Entertainment">Entertainment</SelectItem>
+                          <SelectItem value="Health">Health</SelectItem>
+                          <SelectItem value="Salary">Salary</SelectItem>
+                          <SelectItem value="Freelance">Freelance</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
                         </SelectContent>
                       </Select>
                        <FormMessage />
@@ -238,8 +262,8 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
           <TableHeader>
             <TableRow>
               <TableHead>Description</TableHead>
+              <TableHead className="hidden sm:table-cell">Account</TableHead>
               <TableHead className="hidden sm:table-cell">Category</TableHead>
-              <TableHead className="hidden sm:table-cell">Type</TableHead>
               <TableHead className="hidden md:table-cell">Date</TableHead>
               <TableHead className="text-right">Amount</TableHead>
               <TableHead>
@@ -248,22 +272,18 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {transactions.map((transaction, index) => (
-              <TableRow key={transaction.id || index}>
+            {transactions.slice(0, 5).map((transaction) => {
+              const account = accounts.find(a => a.id === transaction.accountId);
+              return (
+              <TableRow key={transaction.id}>
                 <TableCell className="font-medium">
                   {transaction.description}
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">
-                  <Badge variant="outline">{transaction.category}</Badge>
+                  {account?.provider || 'N/A'}
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">
-                  <Badge
-                    variant={
-                      transaction.type === "income" ? "success" : "secondary"
-                    }
-                  >
-                    {transaction.type}
-                  </Badge>
+                  <Badge variant="outline">{transaction.category}</Badge>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">{transaction.date}</TableCell>
                 <TableCell
@@ -316,7 +336,7 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
                   </AlertDialog>
                 </TableCell>
               </TableRow>
-            ))}
+            )})}
           </TableBody>
         </Table>
       </CardContent>
