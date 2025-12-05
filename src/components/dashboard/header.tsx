@@ -31,6 +31,9 @@ import { Switch } from "@/components/ui/switch";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useGoals } from "@/hooks/use-goals";
+import { getAccounts } from "@/services/accounts";
+import { getGoals } from "@/services/goals";
 
 const mainNavItems = [
   { href: "/dashboard", label: "Overview", icon: LayoutGrid },
@@ -619,8 +622,8 @@ export function DashboardHeader() {
                     <div className="grid grid-cols-3 gap-2">
                       {[
                         { label: "Balance", value: formatCurrency(totalBalance), color: "text-blue-500" },
-                        { label: "Accounts", value: accounts.length, color: "text-emerald-500" },
-                        { label: "Goals", value: goals.length, color: "text-purple-500" },
+                        { label: "Accounts", value: getAccounts.length, color: "text-emerald-500" },
+                        { label: "Goals", value: getGoals.length, color: "text-purple-500" },
                       ].map((stat, i) => (
                         <div key={i} className="text-center p-2 rounded-xl bg-accent/10 hover:bg-accent/20 transition-colors">
                           <p className="text-xs font-medium text-muted-foreground">{stat.label}</p>
