@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -10,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { NotificationContext, useRealtimeNotifications, type Notification } from "@/hooks/use-notifications";
 import { Toaster } from "@/components/ui/toaster";
 import { DashboardHeader } from "@/components/dashboard/header";
+import { BellIcon, Sparkles } from "lucide-react";
 
 function NotificationProvider({ children }: { children: ReactNode }) {
     const [notifications, setNotifications] = React.useState<Notification[]>([]);
@@ -21,7 +23,7 @@ function NotificationProvider({ children }: { children: ReactNode }) {
             date: new Date(),
             read: false
         };
-        setNotifications(prev => [newNotification, ...prev].slice(0, 10)); // Keep last 10
+        setNotifications(prev => [newNotification, ...prev].slice(0, 20)); // Keep last 20
     };
     
     const markAsRead = () => {

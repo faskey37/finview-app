@@ -1,4 +1,5 @@
 
+
 export type Transaction = {
   id: string;
   date: string;
@@ -45,6 +46,7 @@ export type UserData = {
     email: string;
     displayName: string;
     photoURL?: string;
+    createdAt?: string;
     currency?: string;
     isPro?: boolean;
     notifications?: {

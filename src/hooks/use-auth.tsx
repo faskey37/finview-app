@@ -27,7 +27,7 @@ import {
     updatePhoneNumber
 } from "firebase/auth";
 import { auth, db } from '@/lib/firebase';
-import { doc, setDoc, getDoc, deleteDoc, collection, getDocs, writeBatch, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, getDoc, deleteDoc, collection, getDocs, writeBatch, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import type { UserData } from '@/lib/types';
 
 
@@ -99,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                             email: user.email || '',
                             displayName: user.displayName || 'New User',
                             photoURL: user.photoURL || '',
+                            createdAt: user.metadata.creationTime || new Date().toISOString(),
                             currency: "USD",
                             isPro: false, 
                             roundUpForClimate: false,
