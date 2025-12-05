@@ -231,6 +231,10 @@ export function DashboardHeader() {
   const userInitial = (userData?.displayName?.[0] || user?.email?.[0] || 'U').toUpperCase();
   const userName = userData?.displayName || user?.email?.split('@')[0] || 'User';
 
+  function formatCurrency(totalBalance: any) {
+    throw new Error("Function not implemented.");
+  }
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-gradient-to-b from-background/95 to-background/90 backdrop-blur supports-backdrop-blur:bg-background/60">
       {/* Premium Banner for non-pro users */}
@@ -610,23 +614,21 @@ export function DashboardHeader() {
                   </div>
                 </div>
 
-                {/* Quick Stats */}
-                <div className="p-4 border-b border-border/50">
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="text-center p-2 rounded-lg bg-accent/20">
-                      <p className="text-xs text-muted-foreground">Accounts</p>
-                      <p className="font-semibold text-primary">3</p>
-                    </div>
-                    <div className="text-center p-2 rounded-lg bg-accent/20">
-                      <p className="text-xs text-muted-foreground">Balance</p>
-                      <p className="font-semibold text-emerald-600">$12,450</p>
-                    </div>
-                    <div className="text-center p-2 rounded-lg bg-accent/20">
-                      <p className="text-xs text-muted-foreground">Goals</p>
-                      <p className="font-semibold text-purple-600">2/5</p>
+                  {/* Quick Stats */}
+                  <div className="p-4 border-b border-border/50">
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { label: "Balance", value: formatCurrency(totalBalance), color: "text-blue-500" },
+                        { label: "Accounts", value: accounts.length, color: "text-emerald-500" },
+                        { label: "Goals", value: goals.length, color: "text-purple-500" },
+                      ].map((stat, i) => (
+                        <div key={i} className="text-center p-2 rounded-xl bg-accent/10 hover:bg-accent/20 transition-colors">
+                          <p className="text-xs font-medium text-muted-foreground">{stat.label}</p>
+                          <p className={`text-lg font-bold ${stat.color}`}>{stat.value}</p>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </div>
 
                 {/* Navigation Links */}
                 <div className="p-2">
