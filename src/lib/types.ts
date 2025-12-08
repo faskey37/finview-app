@@ -1,5 +1,7 @@
 
 
+import type { LucideIcon } from "lucide-react";
+
 export type Transaction = {
   id: string;
   date: string;
@@ -81,6 +83,10 @@ export type Goal = {
     currentAmount: number;
     deadline: string;
     userId?: string;
+    category?: string;
+    priority?: 'low' | 'medium' | 'high';
+    description?: string;
+    status?: 'active' | 'completed';
 }
 
 export type RecurringTransaction = {
@@ -150,5 +156,17 @@ export interface EcoChallenge {
   description: string;
   points: number;
   icon: React.ElementType;
+}
+
+export interface Notification {
+    id: string;
+    title: string;
+    description: string;
+    date: Date;
+    read: boolean;
+    type: 'success' | 'warning' | 'info' | 'error';
+    icon?: React.ElementType;
+    action?: () => void;
+    actionLabel?: string;
 }
     

@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast"
 import { chatWithAssistant } from "@/ai/flows/chat-with-assistant"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltips"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 type Message = {
     role: "user" | "assistant";

@@ -1,10 +1,8 @@
 
-import { useState, useEffect } from 'react';
-import { getGoals } from '@/services/goals';
+import { useState, useEffect, useCallback } from 'react';
+import { getGoals, getGoals as getGoalsFromSvc } from '@/services/goals';
 import type { Goal } from '@/lib/types';
-import { useAuth } from './use-auth';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { useAuth } from './use-auth.tsx';
 
 export function useGoals() {
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -12,28 +10,45 @@ export function useGoals() {
   const [error, setError] = useState<Error | null>(null);
   const { user } = useAuth();
 
-  useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setLoading(true);
-        try {
-          const unsubscribeSnap = getGoals((newGoals) => {
-            setGoals(newGoals);
-            setLoading(false);
-          });
-          return () => unsubscribeSnap();
-        } catch (e) {
-          setError(e as Error);
+  const fetchGoals = useCallback(() => {
+    let unsubscribe: () => void;
+
+    if (user) {
+      setLoading(true);
+      unsubscribe = getGoals(
+        (newGoals) => {
+          setGoals(newGoals);
+          setLoading(false);
+          setError(null);
+        },
+        (e) => {
+          setError(e);
           setLoading(false);
         }
-      } else {
-        setGoals([]);
-        setLoading(false);
-      }
-    });
+      );
+    } else {
+      // Not logged in, clear data and stop loading
+      setGoals([]);
+      setLoading(false);
+    }
 
-    return () => unsubscribeAuth();
+    // Cleanup subscription on component unmount or user change
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, [user]);
 
-  return { goals, loading, error };
+  useEffect(() => {
+    const unsubscribe = fetchGoals();
+    return unsubscribe;
+  }, [fetchGoals]);
+  
+  const refetch = useCallback(() => {
+    fetchGoals();
+  }, [fetchGoals]);
+
+
+  return { goals, loading, error, refetch };
 }

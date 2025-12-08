@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import Logo from "@/components/logo";
 import { cn } from "@/lib/utils";
-import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltips";
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useSidebar } from "@/hooks/use-sidebar";
 import { useAuth, signOutUser } from "@/hooks/use-auth";
 import { Input } from "../ui/input";

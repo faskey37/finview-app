@@ -1,5 +1,149 @@
 {
-  "node": {},
+  "node": {
+    "002e0880181b6bde2b1895d32f21ddb7fb86aefb6c": {
+      "workers": {
+        "app/dashboard/assistant/page": {
+          "moduleId": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cchat-with-assistant.ts%22%2C%5B%7B%22id%22%3A%22002e0880181b6bde2b1895d32f21ddb7fb86aefb6c%22%2C%22exportedName%22%3A%22testAIConnection%22%2C%22filename%22%3A%22..%2FD%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cchat-with-assistant.ts%22%7D%2C%7B%22id%22%3A%224019869ca693d8f4ba4a5b47009081b76cee805b05%22%2C%22exportedName%22%3A%22handleFinancialQuery%22%2C%22filename%22%3A%22..%2FD%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cchat-with-assistant.ts%22%7D%2C%7B%22id%22%3A%2240b55d6ff6a7b8f8a8fb778d6a8dae876d63e316c2%22%2C%22exportedName%22%3A%22chatWithAssistant%22%2C%22filename%22%3A%22..%2FD%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cchat-with-assistant.ts%22%7D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/assistant/page": "action-browser"
+      },
+      "filename": "../D:\\finview-app\\src\\ai\\flows\\chat-with-assistant.ts",
+      "exportedName": "testAIConnection"
+    },
+    "4019869ca693d8f4ba4a5b47009081b76cee805b05": {
+      "workers": {
+        "app/dashboard/assistant/page": {
+          "moduleId": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cchat-with-assistant.ts%22%2C%5B%7B%22id%22%3A%22002e0880181b6bde2b1895d32f21ddb7fb86aefb6c%22%2C%22exportedName%22%3A%22testAIConnection%22%2C%22filename%22%3A%22..%2FD%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cchat-with-assistant.ts%22%7D%2C%7B%22id%22%3A%224019869ca693d8f4ba4a5b47009081b76cee805b05%22%2C%22exportedName%22%3A%22handleFinancialQuery%22%2C%22filename%22%3A%22..%2FD%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cchat-with-assistant.ts%22%7D%2C%7B%22id%22%3A%2240b55d6ff6a7b8f8a8fb778d6a8dae876d63e316c2%22%2C%22exportedName%22%3A%22chatWithAssistant%22%2C%22filename%22%3A%22..%2FD%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cchat-with-assistant.ts%22%7D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/assistant/page": "action-browser"
+      },
+      "filename": "../D:\\finview-app\\src\\ai\\flows\\chat-with-assistant.ts",
+      "exportedName": "handleFinancialQuery"
+    },
+    "40b55d6ff6a7b8f8a8fb778d6a8dae876d63e316c2": {
+      "workers": {
+        "app/dashboard/assistant/page": {
+          "moduleId": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cchat-with-assistant.ts%22%2C%5B%7B%22id%22%3A%22002e0880181b6bde2b1895d32f21ddb7fb86aefb6c%22%2C%22exportedName%22%3A%22testAIConnection%22%2C%22filename%22%3A%22..%2FD%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cchat-with-assistant.ts%22%7D%2C%7B%22id%22%3A%224019869ca693d8f4ba4a5b47009081b76cee805b05%22%2C%22exportedName%22%3A%22handleFinancialQuery%22%2C%22filename%22%3A%22..%2FD%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cchat-with-assistant.ts%22%7D%2C%7B%22id%22%3A%2240b55d6ff6a7b8f8a8fb778d6a8dae876d63e316c2%22%2C%22exportedName%22%3A%22chatWithAssistant%22%2C%22filename%22%3A%22..%2FD%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cchat-with-assistant.ts%22%7D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/assistant/page": "action-browser"
+      },
+      "filename": "../D:\\finview-app\\src\\ai\\flows\\chat-with-assistant.ts",
+      "exportedName": "chatWithAssistant"
+    },
+    "401f88fb6a21ef50a877c85fbdfb63be24d5862bee": {
+      "workers": {
+        "app/dashboard/subscriptions/page": {
+          "moduleId": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cgenerate-subscription-insight.ts%22%2C%5B%7B%22id%22%3A%22401f88fb6a21ef50a877c85fbdfb63be24d5862bee%22%2C%22exportedName%22%3A%22generateSubscriptionInsights%22%2C%22filename%22%3A%22..%2FD%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cgenerate-subscription-insight.ts%22%7D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/subscriptions/page": "action-browser"
+      },
+      "filename": "../D:\\finview-app\\src\\ai\\flows\\generate-subscription-insight.ts",
+      "exportedName": "generateSubscriptionInsights"
+    },
+    "407f5b0099c9909f563a558059acc6b929cf1774f1": {
+      "workers": {
+        "app/dashboard/bill-negotiation/page": {
+          "moduleId": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cnegotiate-bill.ts%22%2C%5B%7B%22id%22%3A%22407f5b0099c9909f563a558059acc6b929cf1774f1%22%2C%22exportedName%22%3A%22negotiateBill%22%2C%22filename%22%3A%22..%2FD%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cnegotiate-bill.ts%22%7D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/bill-negotiation/page": "action-browser"
+      },
+      "filename": "../D:\\finview-app\\src\\ai\\flows\\negotiate-bill.ts",
+      "exportedName": "negotiateBill"
+    },
+    "40d9a2a18ba368350686a44d89ff2262e00a6c13bc": {
+      "workers": {
+        "app/dashboard/eco/page": {
+          "moduleId": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cgenerate-carbon.footprint.ts%22%2C%5B%7B%22id%22%3A%2240d9a2a18ba368350686a44d89ff2262e00a6c13bc%22%2C%22exportedName%22%3A%22generateCarbonFootprint%22%2C%22filename%22%3A%22..%2FD%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cgenerate-carbon.footprint.ts%22%7D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/eco/page": "action-browser"
+      },
+      "filename": "../D:\\finview-app\\src\\ai\\flows\\generate-carbon.footprint.ts",
+      "exportedName": "generateCarbonFootprint"
+    },
+    "4038c21fbe47a2abfef2dff9f98435a4883f8e8b26": {
+      "workers": {
+        "app/dashboard/score/page": {
+          "moduleId": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cgenerate-financial-health-score.ts%22%2C%5B%7B%22id%22%3A%224038c21fbe47a2abfef2dff9f98435a4883f8e8b26%22%2C%22exportedName%22%3A%22generateFinancialHealthScore%22%2C%22filename%22%3A%22..%2FD%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cgenerate-financial-health-score.ts%22%7D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/score/page": "action-browser"
+      },
+      "filename": "../D:\\finview-app\\src\\ai\\flows\\generate-financial-health-score.ts",
+      "exportedName": "generateFinancialHealthScore"
+    },
+    "005aaf2abceff2656207c6f09ee656dcc9ac5926e3": {
+      "workers": {
+        "app/dashboard/news/page": {
+          "moduleId": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cservices%5C%5Cnews.ts%22%2C%5B%7B%22id%22%3A%22005aaf2abceff2656207c6f09ee656dcc9ac5926e3%22%2C%22exportedName%22%3A%22getFinancialNews%22%2C%22filename%22%3A%22..%2FD%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cservices%5C%5Cnews.ts%22%7D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/news/page": "action-browser"
+      },
+      "filename": "../D:\\finview-app\\src\\services\\news.ts",
+      "exportedName": "getFinancialNews"
+    },
+    "406b2344e3f9bd32a77395a45482e350cf5292a0cc": {
+      "workers": {
+        "app/dashboard/reports/page": {
+          "moduleId": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cgenerate-report-summary.ts%22%2C%5B%7B%22id%22%3A%22406b2344e3f9bd32a77395a45482e350cf5292a0cc%22%2C%22exportedName%22%3A%22generateReportSummary%22%2C%22filename%22%3A%22..%2FD%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cgenerate-report-summary.ts%22%7D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/reports/page": "action-browser"
+      },
+      "filename": "../D:\\finview-app\\src\\ai\\flows\\generate-report-summary.ts",
+      "exportedName": "generateReportSummary"
+    },
+    "402fd89a18ca642214faaa452b6e3db744e47dd450": {
+      "workers": {
+        "app/dashboard/profile/page": {
+          "moduleId": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Csend-email.ts%22%2C%5B%7B%22id%22%3A%22402fd89a18ca642214faaa452b6e3db744e47dd450%22%2C%22exportedName%22%3A%22sendEmail%22%2C%22filename%22%3A%22..%2FD%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Csend-email.ts%22%7D%5D%5D%2C%5B%22D%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cgenerate-monthly-summary.ts%22%2C%5B%7B%22id%22%3A%2240cbf2f26e81916b7a76fb44cf2b62d27e199a4125%22%2C%22exportedName%22%3A%22generateMonthlySummary%22%2C%22filename%22%3A%22..%2FD%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cgenerate-monthly-summary.ts%22%7D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/profile/page": "action-browser"
+      },
+      "filename": "../D:\\finview-app\\src\\ai\\flows\\send-email.ts",
+      "exportedName": "sendEmail"
+    },
+    "40cbf2f26e81916b7a76fb44cf2b62d27e199a4125": {
+      "workers": {
+        "app/dashboard/profile/page": {
+          "moduleId": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Csend-email.ts%22%2C%5B%7B%22id%22%3A%22402fd89a18ca642214faaa452b6e3db744e47dd450%22%2C%22exportedName%22%3A%22sendEmail%22%2C%22filename%22%3A%22..%2FD%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Csend-email.ts%22%7D%5D%5D%2C%5B%22D%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cgenerate-monthly-summary.ts%22%2C%5B%7B%22id%22%3A%2240cbf2f26e81916b7a76fb44cf2b62d27e199a4125%22%2C%22exportedName%22%3A%22generateMonthlySummary%22%2C%22filename%22%3A%22..%2FD%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cgenerate-monthly-summary.ts%22%7D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/profile/page": "action-browser"
+      },
+      "filename": "../D:\\finview-app\\src\\ai\\flows\\generate-monthly-summary.ts",
+      "exportedName": "generateMonthlySummary"
+    }
+  },
   "edge": {},
   "encryptionKey": "v30+PpT/3McH0vltICrs9Kd5c9mOHbXF2w6fzO4ouOA="
 }

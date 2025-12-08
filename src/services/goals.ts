@@ -1,17 +1,14 @@
 
 import { db, auth } from '@/lib/firebase';
-import { collection, addDoc, onSnapshot, query, deleteDoc, doc, updateDoc, getDocs } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import type { Goal } from '@/lib/types';
 
-const getGoalsCollection = () => {
-    const userId = auth.currentUser?.uid;
-    if (!userId) throw new Error("User not logged in");
-    return collection(db, 'users', userId, 'goals');
-}
-
 export const addGoal = async (goal: Omit<Goal, 'id'>) => {
+  const userId = auth.currentUser?.uid;
+  if (!userId) throw new Error("User not logged in. Cannot add goal.");
   try {
-    const docRef = await addDoc(getGoalsCollection(), goal);
+    const goalsCollection = collection(db, 'users', userId, 'goals');
+    const docRef = await addDoc(goalsCollection, goal);
     return docRef.id;
   } catch (e) {
     console.error("Error adding document: ", e);
@@ -19,12 +16,13 @@ export const addGoal = async (goal: Omit<Goal, 'id'>) => {
   }
 };
 
-export const getGoals = (callback: (goals: Goal[]) => void) => {
-  if (!auth.currentUser) {
+export const getGoals = (callback: (goals: Goal[]) => void, errorCallback: (error: Error) => void) => {
+  const user = auth.currentUser;
+  if (!user) {
       callback([]);
       return () => {};
   }
-  const goalsCollection = getGoalsCollection();
+  const goalsCollection = collection(db, 'users', user.uid, 'goals');
   const q = query(goalsCollection);
   
   const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -35,14 +33,17 @@ export const getGoals = (callback: (goals: Goal[]) => void) => {
     callback(goals);
   }, (error) => {
     console.error("Error fetching goals:", error);
+    errorCallback(error);
   });
 
   return unsubscribe;
 };
 
 export const updateGoal = async (id: string, updates: Partial<Goal>) => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) throw new Error("User not logged in. Cannot update goal.");
     try {
-        const docRef = doc(getGoalsCollection(), id);
+        const docRef = doc(db, 'users', userId, 'goals', id);
         await updateDoc(docRef, updates);
     } catch (e) {
         console.error("Error updating document: ", e);
@@ -51,8 +52,10 @@ export const updateGoal = async (id: string, updates: Partial<Goal>) => {
 }
 
 export const deleteGoal = async (id: string) => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) throw new Error("User not logged in. Cannot delete goal.");
     try {
-        const docRef = doc(getGoalsCollection(), id);
+        const docRef = doc(db, 'users', userId, 'goals', id);
         await deleteDoc(docRef);
     } catch (e) {
         console.error("Error deleting document: ", e);

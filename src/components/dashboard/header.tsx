@@ -31,9 +31,11 @@ import { Switch } from "@/components/ui/switch";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAccounts } from "@/hooks/use-accounts";
 import { useGoals } from "@/hooks/use-goals";
-import { getAccounts } from "@/services/accounts";
-import { getGoals } from "@/services/goals";
+import { useTransactions } from "@/hooks/use-transactions";
+import { useCurrency } from "@/hooks/use-currency";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const mainNavItems = [
   { href: "/dashboard", label: "Overview", icon: LayoutGrid },
@@ -186,9 +188,6 @@ const DropdownNav = ({ title, items }: { title: string, items: any[] }) => {
                 )}
                 <div className="flex-1">
                   <span className="font-medium text-sm">{item.label}</span>
-                  {item.description && (
-                    <p className="text-xs text-muted-foreground mt-1">{item.description}</p>
-                  )}
                 </div>
                 {item.badge && (
                   <Badge 
@@ -214,9 +213,185 @@ const DropdownNav = ({ title, items }: { title: string, items: any[] }) => {
   );
 };
 
+// Quick Stats Component - FIXED CURRENCY SYMBOL
+function QuickStats() {
+  const { accounts, isLoading: accountsLoading } = useAccounts();
+  const { goals, isLoading: goalsLoading } = useGoals();
+  const { transactions, isLoading: transactionsLoading } = useTransactions();
+  const { formatCurrency, currencySymbol } = useCurrency();
+
+  if (accountsLoading || goalsLoading || transactionsLoading) {
+    return (
+      <div className="grid grid-cols-3 gap-2">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="text-center p-2 rounded-lg bg-accent/20">
+            <Skeleton className="h-3 w-8 mx-auto mb-1" />
+            <Skeleton className="h-4 w-12 mx-auto" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // Calculate total balance (excluding credit cards as negative)
+  const totalBalance = accounts.reduce((acc, account) => {
+    if (account.type === 'Credit Card' || account.type === 'credit_card') {
+      return acc - account.balance;
+    }
+    return acc + account.balance;
+  }, 0);
+
+  // Calculate net worth (all assets minus liabilities)
+  const netWorth = accounts.reduce((acc, account) => {
+    const type = account.type.toLowerCase();
+    if (type.includes('credit') || type.includes('loan') || type.includes('debt')) {
+      return acc - account.balance;
+    }
+    return acc + account.balance;
+  }, 0);
+
+  // Calculate this month's expenses
+  const thisMonthExpenses = transactions
+    .filter(t => {
+      const transactionDate = new Date(t.date);
+      const now = new Date();
+      return t.type === 'expense' && 
+             transactionDate.getMonth() === now.getMonth() &&
+             transactionDate.getFullYear() === now.getFullYear();
+    })
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  // Calculate active goals
+  const activeGoals = goals.filter(g => 
+    g.status === 'active' || g.status === 'in-progress'
+  ).length;
+
+  // Calculate total accounts (excluding archived)
+  const activeAccounts = accounts.filter(a => 
+    a.status !== 'archived' && a.status !== 'closed'
+  ).length;
+
+  // Calculate total income this month
+  const thisMonthIncome = transactions
+    .filter(t => {
+      const transactionDate = new Date(t.date);
+      const now = new Date();
+      return t.type === 'income' && 
+             transactionDate.getMonth() === now.getMonth() &&
+             transactionDate.getFullYear() === now.getFullYear();
+    })
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  // Calculate savings rate
+  const savingsRate = thisMonthIncome > 0 
+    ? ((thisMonthIncome - thisMonthExpenses) / thisMonthIncome * 100).toFixed(1)
+    : "0.0";
+
+  // Helper function to format large numbers with abbreviations
+  const formatCompactCurrency = (amount: number) => {
+    // Use the currency symbol from useCurrency hook
+    const symbol = currencySymbol || '$';
+    
+    if (amount >= 1000000000) {
+      return `${symbol}${(amount / 1000000000).toFixed(1)}B`;
+    }
+    if (amount >= 1000000) {
+      return `${symbol}${(amount / 1000000).toFixed(1)}M`;
+    }
+    if (amount >= 1000) {
+      return `${symbol}${(amount / 1000).toFixed(1)}K`;
+    }
+    return formatCurrency(amount);
+  };
+
+  return (
+    <div className="p-4 border-b border-border/50">
+      {/* Main Stats Row */}
+      <div className="grid grid-cols-3 gap-2 mb-3">
+        {/* Balance with large number handling */}
+        <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20 min-w-0">
+          <p className="text-xs text-muted-foreground mb-2 truncate w-full text-center px-1">Balance</p>
+          <p className="font-bold text-primary text-sm truncate w-full text-center leading-tight px-1">
+            {formatCompactCurrency(totalBalance)}
+          </p>
+          <p className="text-[10px] text-muted-foreground/70 mt-1 truncate w-full text-center px-1">
+            {totalBalance >= 1000000 ? formatCurrency(totalBalance) : ''}
+          </p>
+        </div>
+
+        {/* Accounts */}
+        <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 min-w-0">
+          <p className="text-xs text-muted-foreground mb-2 truncate w-full text-center px-1">Accounts</p>
+          <p className="font-bold text-emerald-600 text-sm truncate w-full text-center px-1">
+            {activeAccounts}
+          </p>
+        </div>
+
+        {/* Goals */}
+        <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 min-w-0">
+          <p className="text-xs text-muted-foreground mb-2 truncate w-full text-center px-1">Goals</p>
+          <p className="font-bold text-purple-600 text-sm truncate w-full text-center px-1">
+            {activeGoals}/{goals.length}
+          </p>
+        </div>
+      </div>
+
+      {/* Additional Stats - Only show if we have data */}
+      {(thisMonthExpenses > 0 || thisMonthIncome > 0) && (
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          {/* Monthly Expenses */}
+          <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 min-w-0">
+            <p className="text-xs text-muted-foreground mb-1 truncate w-full text-center px-1">Spent</p>
+            <p className="font-semibold text-amber-600 text-sm truncate w-full text-center px-1">
+              {formatCurrency(thisMonthExpenses)}
+            </p>
+          </div>
+
+          {/* Monthly Income */}
+          <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 min-w-0">
+            <p className="text-xs text-muted-foreground mb-1 truncate w-full text-center px-1">Earned</p>
+            <p className="font-semibold text-green-600 text-sm truncate w-full text-center px-1">
+              {formatCurrency(thisMonthIncome)}
+            </p>
+          </div>
+
+          {/* Savings Rate */}
+          <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-gradient-to-br from-rose-500/10 to-pink-500/10 border border-rose-500/20 min-w-0">
+            <p className="text-xs text-muted-foreground mb-1 truncate w-full text-center px-1">Savings</p>
+            <p className="font-semibold text-rose-600 text-sm truncate w-full text-center px-1">
+              {savingsRate}%
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Net Worth Summary */}
+      <div className="mt-3 pt-3 border-t border-border/30">
+        <div className="flex items-center justify-between min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <BarChart2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <span className="text-xs font-medium truncate">Net Worth</span>
+          </div>
+          <div className="flex flex-col items-end min-w-0 ml-2">
+            <span className={cn(
+              "text-sm font-bold truncate text-right",
+              netWorth >= 0 ? "text-emerald-600" : "text-rose-600"
+            )}>
+              {formatCompactCurrency(netWorth)}
+            </span>
+            <span className="text-[10px] text-muted-foreground/70 truncate text-right">
+              {netWorth >= 1000000 ? formatCurrency(netWorth) : ''}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function DashboardHeader() {
   const { notifications, markAsRead } = useNotifications();
-  const { user, userData, isPro } = useAuth();
+  const { user, userData, isPro, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -234,31 +409,28 @@ export function DashboardHeader() {
   const userInitial = (userData?.displayName?.[0] || user?.email?.[0] || 'U').toUpperCase();
   const userName = userData?.displayName || user?.email?.split('@')[0] || 'User';
 
-  function formatCurrency(totalBalance: any) {
-    throw new Error("Function not implemented.");
-  }
-
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-gradient-to-b from-background/95 to-background/90 backdrop-blur supports-backdrop-blur:bg-background/60">
       {/* Premium Banner for non-pro users */}
-      {!isPro && (
+      {!isPro && !authLoading && (
         <div className="w-full bg-gradient-to-r from-primary/10 via-primary/5 to-accent/5 border-b border-primary/20">
           <div className="container mx-auto px-4 py-2 flex items-center justify-center gap-3">
             <div className="flex items-center gap-2">
               <Crown className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium text-primary">Upgrade to Pro</span>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground hidden sm:block">
               Unlock advanced features and AI-powered insights
             </p>
             <Button 
               size="sm" 
-              className="ml-4 h-7 px-3 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90"
+              className="ml-2 sm:ml-4 h-7 px-3 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90"
               asChild
             >
               <Link href="/dashboard/upgrade" className="flex items-center gap-2">
                 <Sparkles className="h-3 w-3" />
-                Upgrade Now
+                <span className="hidden sm:inline">Upgrade Now</span>
+                <span className="sm:hidden">Upgrade</span>
               </Link>
             </Button>
           </div>
@@ -271,7 +443,7 @@ export function DashboardHeader() {
           {/* Logo */}
           <Link href="/dashboard" className="flex items-center gap-2">
             <Logo />
-            {isPro && (
+            {isPro && !authLoading && (
               <Badge variant="outline" className="ml-2 border-primary/30 bg-primary/10 text-primary text-xs font-medium">
                 <Crown className="h-3 w-3 mr-1" />
                 Pro
@@ -296,7 +468,7 @@ export function DashboardHeader() {
                 <div className="flex items-center justify-between">
                   <Logo />
                   <div className="flex items-center gap-2">
-                    {!isPro && (
+                    {!isPro && !authLoading && (
                       <Button 
                         size="sm" 
                         className="h-8 px-3 bg-gradient-to-r from-primary to-purple-600"
@@ -327,7 +499,7 @@ export function DashboardHeader() {
                         {userInitial}
                       </AvatarFallback>
                     </Avatar>
-                    {isPro && (
+                    {isPro && !authLoading && (
                       <div className="absolute -bottom-1 -right-1">
                         <Crown className="h-4 w-4 fill-primary text-primary" />
                       </div>
@@ -548,7 +720,7 @@ export function DashboardHeader() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* User Menu - FIXED with ScrollArea */}
+          {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
@@ -562,7 +734,7 @@ export function DashboardHeader() {
                     {userInitial}
                   </AvatarFallback>
                 </Avatar>
-                {isPro && (
+                {isPro && !authLoading && (
                   <div className="absolute -bottom-0.5 -right-0.5">
                     <div className="h-4 w-4 rounded-full bg-gradient-to-r from-primary to-purple-600 p-0.5">
                       <Crown className="h-full w-full text-white" />
@@ -588,7 +760,7 @@ export function DashboardHeader() {
                           {userInitial}
                         </AvatarFallback>
                       </Avatar>
-                      {isPro && (
+                      {isPro && !authLoading && (
                         <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-primary to-purple-600 rounded-full p-1">
                           <Crown className="h-3 w-3 text-white" />
                         </div>
@@ -602,12 +774,12 @@ export function DashboardHeader() {
                           variant="outline" 
                           className={cn(
                             "text-xs font-medium",
-                            isPro 
+                            isPro && !authLoading
                               ? "bg-gradient-to-r from-primary/10 to-purple-600/10 text-primary border-primary/30" 
                               : "bg-accent/20 text-muted-foreground"
                           )}
                         >
-                          {isPro ? 'Pro Member' : 'Free Plan'}
+                          {isPro && !authLoading ? 'Pro Member' : 'Free Plan'}
                         </Badge>
                         <span className="text-xs text-muted-foreground/70">
                           Joined {userData?.createdAt ? formatDistanceToNow(userData.createdAt, { addSuffix: true }) : 'recently'}
@@ -617,21 +789,8 @@ export function DashboardHeader() {
                   </div>
                 </div>
 
-                  {/* Quick Stats */}
-                  <div className="p-4 border-b border-border/50">
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { label: "Balance", value: formatCurrency(totalBalance), color: "text-blue-500" },
-                        { label: "Accounts", value: getAccounts.length, color: "text-emerald-500" },
-                        { label: "Goals", value: getGoals.length, color: "text-purple-500" },
-                      ].map((stat, i) => (
-                        <div key={i} className="text-center p-2 rounded-xl bg-accent/10 hover:bg-accent/20 transition-colors">
-                          <p className="text-xs font-medium text-muted-foreground">{stat.label}</p>
-                          <p className={`text-lg font-bold ${stat.color}`}>{stat.value}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                {/* Quick Stats with real data - FIXED CURRENCY SYMBOL */}
+                <QuickStats />
 
                 {/* Navigation Links */}
                 <div className="p-2">
@@ -639,30 +798,30 @@ export function DashboardHeader() {
                     <Link href="/dashboard/profile">
                       <DropdownMenuItem className="cursor-pointer p-3 rounded-lg hover:bg-accent/30">
                         <User className="h-4 w-4 mr-3 text-muted-foreground" />
-                        <div className="flex-1">
-                          <span>Profile</span>
-                          <p className="text-xs text-muted-foreground">Manage your personal information</p>
+                        <div className="flex-1 min-w-0">
+                          <span className="block truncate">Profile</span>
+                          <p className="text-xs text-muted-foreground truncate">Manage your personal information</p>
                         </div>
                       </DropdownMenuItem>
                     </Link>
                     <Link href="/dashboard/settings">
                       <DropdownMenuItem className="cursor-pointer p-3 rounded-lg hover:bg-accent/30">
                         <Settings className="h-4 w-4 mr-3 text-muted-foreground" />
-                        <div className="flex-1">
-                          <span>Settings</span>
-                          <p className="text-xs text-muted-foreground">Customize your preferences</p>
+                        <div className="flex-1 min-w-0">
+                          <span className="block truncate">Settings</span>
+                          <p className="text-xs text-muted-foreground truncate">Customize your preferences</p>
                         </div>
                       </DropdownMenuItem>
                     </Link>
-                    <Link href="/dashboard/billing">
+                    <Link href="/dashboard/upgrade">
                       <DropdownMenuItem className="cursor-pointer p-3 rounded-lg hover:bg-accent/30">
                         <CreditCard className="h-4 w-4 mr-3 text-muted-foreground" />
-                        <div className="flex-1">
-                          <span>Billing & Plans</span>
-                          <p className="text-xs text-muted-foreground">Manage subscription and billing</p>
+                        <div className="flex-1 min-w-0">
+                          <span className="block truncate">Billing & Plans</span>
+                          <p className="text-xs text-muted-foreground truncate">Manage subscription and billing</p>
                         </div>
-                        {isPro && (
-                          <Badge variant="outline" className="text-xs bg-gradient-to-r from-primary/10 to-purple-600/10 text-primary border-primary/30">
+                        {isPro && !authLoading && (
+                          <Badge variant="outline" className="text-xs bg-gradient-to-r from-primary/10 to-purple-600/10 text-primary border-primary/30 flex-shrink-0 ml-2">
                             Pro
                           </Badge>
                         )}
@@ -693,17 +852,17 @@ export function DashboardHeader() {
                   <DropdownMenuSeparator />
 
                   {/* Upgrade Section for Free Users */}
-                  {!isPro && (
+                  {!isPro && !authLoading && (
                     <>
                       <div className="p-3 m-2">
                         <div className="p-4 bg-gradient-to-r from-primary/10 to-accent/10 rounded-lg border border-primary/20">
                           <div className="flex items-start gap-3">
-                            <div className="p-2 rounded-lg bg-gradient-to-r from-primary to-purple-600">
+                            <div className="p-2 rounded-lg bg-gradient-to-r from-primary to-purple-600 flex-shrink-0">
                               <Crown className="h-5 w-5 text-white" />
                             </div>
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-sm">Upgrade to Pro</h4>
-                              <p className="text-xs text-muted-foreground mt-1">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-sm truncate">Upgrade to Pro</h4>
+                              <p className="text-xs text-muted-foreground mt-1 truncate">
                                 Unlock all features and priority support
                               </p>
                               <Button 
@@ -729,19 +888,19 @@ export function DashboardHeader() {
                     <Link href="/help">
                       <DropdownMenuItem className="cursor-pointer p-3 rounded-lg hover:bg-accent/30">
                         <HelpCircle className="h-4 w-4 mr-3 text-muted-foreground" />
-                        <span>Help & Support</span>
+                        <span className="truncate">Help & Support</span>
                       </DropdownMenuItem>
                     </Link>
                     <Link href="/privacy">
                       <DropdownMenuItem className="cursor-pointer p-3 rounded-lg hover:bg-accent/30">
                         <Shield className="h-4 w-4 mr-3 text-muted-foreground" />
-                        <span>Privacy & Security</span>
+                        <span className="truncate">Privacy & Security</span>
                       </DropdownMenuItem>
                     </Link>
                     <Link href="/feedback">
                       <DropdownMenuItem className="cursor-pointer p-3 rounded-lg hover:bg-accent/30">
                         <Gift className="h-4 w-4 mr-3 text-muted-foreground" />
-                        <span>Send Feedback</span>
+                        <span className="truncate">Send Feedback</span>
                       </DropdownMenuItem>
                     </Link>
                   </div>
@@ -755,7 +914,7 @@ export function DashboardHeader() {
                       onClick={handleSignOut}
                     >
                       <LogOut className="h-4 w-4 mr-3" />
-                      <span>Sign Out</span>
+                      <span className="truncate">Sign Out</span>
                     </DropdownMenuItem>
                   </div>
                 </div>
@@ -763,13 +922,13 @@ export function DashboardHeader() {
                 {/* Footer */}
                 <div className="p-4 border-t border-border/50 bg-accent/5">
                   <div className="flex items-center justify-between">
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs text-muted-foreground truncate">
                       v2.1.0 • Last login: Today
                     </div>
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="h-6 text-xs text-muted-foreground hover:text-primary"
+                      className="h-6 text-xs text-muted-foreground hover:text-primary flex-shrink-0"
                       asChild
                     >
                       <Link href="/dashboard/settings/security">

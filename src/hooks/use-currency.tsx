@@ -14,9 +14,18 @@ const EXCHANGE_RATES: { [key: string]: number } = {
   INR: 83.5,
 };
 
+const CURRENCY_SYMBOLS: { [key: string]: string } = {
+    USD: "$",
+    EUR: "€",
+    JPY: "¥",
+    GBP: "£",
+    INR: "₹",
+};
+
 
 interface CurrencyContextProps {
   currency: string;
+  currencySymbol: string;
   setCurrency: (currency: string) => void;
   formatCurrency: (amount: number) => string;
   formatCompactNumber: (amount: number) => string;
@@ -67,8 +76,10 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     }).format(convertedAmount);
   }
 
+  const currencySymbol = CURRENCY_SYMBOLS[currency] || '$';
+
   return (
-    <CurrencyContext.Provider value={{ currency, setCurrency, formatCurrency, formatCompactNumber, convertToBaseCurrency }}>
+    <CurrencyContext.Provider value={{ currency, setCurrency, formatCurrency, formatCompactNumber, convertToBaseCurrency, currencySymbol }}>
       {children}
     </CurrencyContext.Provider>
   );
