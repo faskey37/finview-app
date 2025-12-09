@@ -1,323 +1,347 @@
-'use server';
+// /ai/flows/chat-with-assistant.ts
+'use client';
 
-/**
- * @fileOverview Professional AI financial assistant with intelligent response handling
- * Uses OpenRouter API with optimized prompts and comprehensive error handling
- */
+import { useAuth } from "@/hooks/use-auth";
+import { useTransactions } from "@/hooks/use-transactions";
+import { useAccounts } from "@/hooks/use-accounts";
+import { useBudgets } from "@/hooks/use-budgets";
+import { useInvestments } from "@/hooks/use-investments";
+import { useGoals } from "@/hooks/use-goals";
 
-interface OpenRouterResponse {
-  choices: Array<{
-    message: {
-      content: string;
-    };
-  }>;
-  error?: {
-    message: string;
-  };
-}
+// Predefined responses for common queries
+const PREDEFINED_RESPONSES: Record<string, string> = {
+  'hi': 'Hello! I\'m your financial assistant. How can I help you today?',
+  'hello': 'Hi there! What financial questions can I help you with?',
+  'hey': 'Hey! Ready to optimize your finances?',
+  'thanks': 'You\'re welcome! Happy to help.',
+  'thank you': 'Glad I could assist!',
+  'bye': 'Goodbye! Feel free to return with any financial questions.',
+  'goodbye': 'See you next time!',
+  'how are you': 'I\'m functioning well, thank you! Ready to help with your financial goals.',
+};
 
-interface FinancialContext {
-  hasData: boolean;
-  summary?: string;
-}
+export function useAIAssistant() {
+  const { user } = useAuth();
+  const { data: transactionsData = [], isLoading: transactionsLoading } = useTransactions();
+  const { data: accountsData = [], isLoading: accountsLoading } = useAccounts();
+  const { data: budgetsData = [], isLoading: budgetsLoading } = useBudgets();
+  const { data: investmentsData, isLoading: investmentsLoading } = useInvestments();
+  const { data: goalsData = [], isLoading: goalsLoading } = useGoals();
 
-// Predefined responses for common queries (avoids unnecessary API calls)
-const PREDEFINED_RESPONSES: Map<string, string> = new Map([
-  ['hi', 'Hello! I\'m your financial assistant. How can I help you today?'],
-  ['hello', 'Hi there! What financial questions can I help you with?'],
-  ['hey', 'Hey! Ready to optimize your finances?'],
-  ['thanks', 'You\'re welcome! Happy to help.'],
-  ['thank you', 'Glad I could assist!'],
-  ['bye', 'Goodbye! Feel free to return with any financial questions.'],
-  ['goodbye', 'See you next time!'],
-  ['how are you', 'I\'m functioning well, thank you! Ready to help with your financial goals.'],
-]);
-
-// Questions that require specific user data access
-const PERSONAL_DATA_QUESTIONS: RegExp[] = [
-  /my (balance|account|money)/i,
-  /how much (do i have|money)/i,
-  /show me my/i,
-  /what('s| is) my/i,
-  /current (balance|spending|budget)/i,
-  /recent transactions/i,
-  /account details/i,
-];
-
-// Common financial topics for optimized responses
-const FINANCIAL_TOPICS: Map<RegExp, string> = new Map([
-  [/what is.*budget/i, 'A budget is a financial plan that helps you track income and expenses, ensure you live within your means, and work toward your financial goals.'],
-  [/how to.*save money/i, 'Start by tracking expenses, creating a budget, setting clear savings goals, automating transfers, and reducing unnecessary spending.'],
-  [/what is.*investing/i, 'Investing involves putting money into assets like stocks, bonds, or real estate with the expectation of generating returns over time.'],
-  [/emergency fund/i, 'An emergency fund should cover 3-6 months of living expenses in a liquid, accessible account for unexpected financial needs.'],
-  [/credit score/i, 'Your credit score is a numerical representation of your creditworthiness based on payment history, credit utilization, and other factors.'],
-]);
-
-class AIAssistantService {
-  private apiKey: string;
-  private baseURL = 'https://openrouter.ai/api/v1/chat/completions';
-
-  constructor() {
-    this.apiKey = process.env.OPENROUTER_API_KEY || '';
-  }
-
-  private isPersonalDataQuestion(query: string): boolean {
-    return PERSONAL_DATA_QUESTIONS.some(regex => regex.test(query));
-  }
-
-  private getPredefinedResponse(query: string): string | null {
-    const cleanQuery = query.toLowerCase().trim();
-    return PREDEFINED_RESPONSES.get(cleanQuery) || null;
-  }
-
-  private getFinancialTopicResponse(query: string): string | null {
-    for (const [regex, response] of FINANCIAL_TOPICS) {
-      if (regex.test(query)) {
-        return response;
-      }
-    }
-    return null;
-  }
-
-  private async callOpenRouterAPI(messages: any[], maxTokens: number = 250): Promise<string> {
-    if (!this.apiKey) {
-      throw new Error('OpenRouter API key not configured');
-    }
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
-    try {
-      const response = await fetch(this.baseURL, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-          'X-Title': 'Financial Intelligence Assistant',
-        },
-        body: JSON.stringify({
-          model: 'mistralai/mistral-7b-instruct',
-          messages,
-          max_tokens: maxTokens,
-          temperature: 0.7,
-          top_p: 0.9,
-        }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeout);
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`API error: ${response.status} - ${JSON.stringify(errorData)}`);
-      }
-
-      const data: OpenRouterResponse = await response.json();
-      
-      if (data.error) {
-        throw new Error(data.error.message);
-      }
-
-      return data.choices[0]?.message?.content || 'I couldn\'t generate a response. Please try again.';
-
-    } catch (error) {
-      clearTimeout(timeout);
-      throw error;
-    }
-  }
-
-  private buildSystemPrompt(context: FinancialContext): string {
-    return `You are a expert financial assistant. Provide accurate, helpful, and concise responses.
-
-CORE PRINCIPLES:
-1. BE SPECIFIC - Answer the exact question asked
-2. BE CONCISE - 2-4 sentences maximum (50-150 words)
-3. BE HONEST - Never invent or assume user data
-4. BE EDUCATIONAL - Provide general financial guidance
-5. BE PROFESSIONAL - Maintain helpful, expert tone
-
-DATA ACCESS RULES:
-- You DO NOT have access to user's personal financial data
-- If asked about specific accounts/balances: "I don't have access to your personal financial data. Please check your dashboard for account-specific information."
-- For general questions: provide educational information
-
-RESPONSE GUIDELINES:
-- Focus on actionable advice
-- Use simple, clear language
-- Include practical examples when helpful
-- Avoid financial jargon without explanation
-- Never provide specific investment advice
-
-${context.hasData ? 'Context: ' + context.summary : ''}`;
-  }
-
-  public async chatWithAssistant(query: string): Promise<string> {
+  const chat = async (query: string): Promise<string> => {
     try {
       // Validate input
       if (!query?.trim()) {
-        return 'Please ask a question about personal finance.';
+        return 'Please ask a question about your finances.';
       }
 
-      const cleanQuery = query.trim();
+      const cleanQuery = query.trim().toLowerCase();
 
       // Check for predefined responses
-      const predefinedResponse = this.getPredefinedResponse(cleanQuery);
-      if (predefinedResponse) {
-        return predefinedResponse;
+      if (PREDEFINED_RESPONSES[cleanQuery]) {
+        return PREDEFINED_RESPONSES[cleanQuery];
       }
 
-      // Check for financial topic responses
-      const topicResponse = this.getFinancialTopicResponse(cleanQuery);
-      if (topicResponse) {
-        return topicResponse;
+      // Check if user is authenticated
+      if (!user) {
+        return 'Please sign in to get personalized financial advice. You can still ask general finance questions!';
       }
 
-      // Handle personal data questions
-      if (this.isPersonalDataQuestion(cleanQuery)) {
-        return 'I don\'t have access to your personal financial data. For account-specific information like balances, transactions, and budgets, please check your dashboard. I can provide general financial advice if that would be helpful!';
+      // Check if data is still loading
+      if (transactionsLoading || accountsLoading || budgetsLoading || investmentsLoading || goalsLoading) {
+        return 'I\'m still loading your financial data. Please wait a moment and try again.';
       }
 
-      // Prepare context (optional - can be enhanced with actual user data)
-      const context: FinancialContext = {
-        hasData: false,
-        summary: 'User is asking general financial questions'
-      };
+      // Debug log to see what data we have
+      console.log('Transactions data:', transactionsData.length);
+      console.log('Accounts data:', accountsData.length);
+      console.log('Budgets data:', budgetsData.length);
+      console.log('Goals data:', goalsData.length);
 
-      // Call AI API for tailored response
-      const messages = [
-        {
-          role: 'system',
-          content: this.buildSystemPrompt(context)
-        },
-        {
-          role: 'user',
-          content: cleanQuery
-        }
-      ];
+      // Prepare user financial data
+      const userData = prepareUserFinancialData(
+        user,
+        transactionsData,
+        accountsData,
+        budgetsData,
+        investmentsData,
+        goalsData
+      );
 
-      const response = await this.callOpenRouterAPI(messages);
-      return this.formatResponse(response);
+      // Generate response based on query and user data
+      return generateResponse(cleanQuery, userData);
 
     } catch (error) {
       console.error('AI Assistant Error:', error);
-      return this.handleError(error);
+      return 'I\'m experiencing technical difficulties. Please try again in a moment.';
     }
-  }
-
-  private formatResponse(response: string): string {
-    // Clean up response formatting
-    return response
-      .replace(/\n+/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-
-  private handleError(error: any): string {
-    if (error.name === 'AbortError') {
-      return 'Request timeout. Please try again.';
-    }
-
-    if (error.message.includes('API key') || error.message.includes('401')) {
-      return 'Service configuration issue. Please try again later.';
-    }
-
-    if (error.message.includes('rate limit') || error.message.includes('429')) {
-      return 'Service is busy. Please wait a moment and try again.';
-    }
-
-    if (error.message.includes('network')) {
-      return 'Network connection issue. Please check your internet connection.';
-    }
-
-    return 'I\'m experiencing technical difficulties. Please try again in a moment.';
-  }
-
-  // Public method for testing API connection
-  public async testConnection(): Promise<{ success: boolean; message: string; latency?: number }> {
-    try {
-      const startTime = Date.now();
-      
-      const response = await this.callOpenRouterAPI([
-        {
-          role: 'user',
-          content: 'Respond with "OK" only'
-        }
-      ], 10);
-
-      const latency = Date.now() - startTime;
-
-      return {
-        success: response.includes('OK'),
-        message: response,
-        latency
-      };
-
-    } catch (error) {
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : 'Connection failed'
-      };
-    }
-  }
-}
-
-// Singleton instance
-let assistantInstance: AIAssistantService | null = null;
-
-function getAIAssistant(): AIAssistantService {
-  if (!assistantInstance) {
-    assistantInstance = new AIAssistantService();
-  }
-  return assistantInstance;
-}
-
-// Main export function - MUST be async for Server Action
-export async function chatWithAssistant(query: string): Promise<string> {
-  const assistant = getAIAssistant();
-  return assistant.chatWithAssistant(query);
-}
-
-// Utility functions - MUST be async for Server Actions
-export async function testAIConnection(): Promise<string> {
-  const assistant = getAIAssistant();
-  const result = await assistant.testConnection();
-  
-  return result.success 
-    ? `✅ Connection successful (${result.latency}ms)`
-    : `❌ Connection failed: ${result.message}`;
-}
-
-export async function handleFinancialQuery(query: string): Promise<{ response: string; type: 'predefined' | 'topic' | 'personal' | 'ai' }> {
-  const assistant = getAIAssistant();
-  const cleanQuery = query.trim().toLowerCase();
-
-  // Determine response type
-  if (PREDEFINED_RESPONSES.has(cleanQuery)) {
-    return {
-      response: PREDEFINED_RESPONSES.get(cleanQuery)!,
-      type: 'predefined'
-    };
-  }
-
-  if (assistant.isPersonalDataQuestion(query)) {
-    return {
-      response: 'I don\'t have access to your personal financial data. Please check your dashboard for specific information.',
-      type: 'personal'
-    };
-  }
-
-  const topicResponse = assistant.getFinancialTopicResponse(query);
-  if (topicResponse) {
-    return {
-      response: topicResponse,
-      type: 'topic'
-    };
-  }
-
-  const aiResponse = await assistant.chatWithAssistant(query);
-  return {
-    response: aiResponse,
-    type: 'ai'
   };
-} 
+
+  return {
+    chat,
+    isAvailable: !!user,
+    isLoading: transactionsLoading || accountsLoading || budgetsLoading || investmentsLoading || goalsLoading
+  };
+}
+
+function prepareUserFinancialData(
+  user: any,
+  transactions: any[],
+  accounts: any[],
+  budgets: any[],
+  investments: any,
+  goals: any[]
+) {
+  try {
+    if (!user) {
+      return null;
+    }
+
+    // Debug the incoming data structure
+    console.log('Raw transactions:', transactions);
+    console.log('Raw accounts:', accounts);
+
+    // Calculate total balance from accounts
+    const totalBalance = accounts.reduce((sum: number, account: any) => {
+      const balance = typeof account.balance === 'number' ? account.balance : 
+                     account.currentBalance || account.amount || 0;
+      return sum + balance;
+    }, 0);
+
+    // Get recent transactions (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const recentTransactions = transactions
+      .filter((t: any) => {
+        if (!t) return false;
+        const date = t.date ? new Date(t.date) : 
+                    t.createdAt ? new Date(t.createdAt) : new Date();
+        return date >= thirtyDaysAgo;
+      })
+      .sort((a: any, b: any) => {
+        const dateA = a.date ? new Date(a.date) : 
+                     a.createdAt ? new Date(a.createdAt) : new Date();
+        const dateB = b.date ? new Date(b.date) : 
+                     b.createdAt ? new Date(b.createdAt) : new Date();
+        return dateB.getTime() - dateA.getTime();
+      })
+      .slice(0, 10);
+
+    // Calculate monthly income and expenses (current month)
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    
+    const monthlyTransactions = transactions.filter((t: any) => {
+      if (!t) return false;
+      const date = t.date ? new Date(t.date) : 
+                  t.createdAt ? new Date(t.createdAt) : new Date();
+      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+    });
+
+    const monthlyIncome = monthlyTransactions
+      .filter((t: any) => {
+        if (!t) return false;
+        const amount = t.amount || t.value || 0;
+        return t.type === 'income' || t.category === 'income' || amount > 0;
+      })
+      .reduce((sum: number, t: any) => sum + Math.abs(t.amount || t.value || 0), 0);
+
+    const monthlyExpenses = monthlyTransactions
+      .filter((t: any) => {
+        if (!t) return false;
+        const amount = t.amount || t.value || 0;
+        return t.type === 'expense' || t.category === 'expense' || amount < 0;
+      })
+      .reduce((sum: number, t: any) => sum + Math.abs(t.amount || t.value || 0), 0);
+
+    // Calculate top spending categories
+    const categorySpending = new Map<string, number>();
+    recentTransactions
+      .filter((t: any) => {
+        if (!t) return false;
+        const amount = t.amount || t.value || 0;
+        return t.type === 'expense' || t.category === 'expense' || amount < 0;
+      })
+      .forEach((t: any) => {
+        const category = t.category || t.type || 'Uncategorized';
+        const current = categorySpending.get(category) || 0;
+        const amount = Math.abs(t.amount || t.value || 0);
+        categorySpending.set(category, current + amount);
+      });
+
+    const totalSpending = Array.from(categorySpending.values()).reduce((a, b) => a + b, 0);
+    const topSpendingCategories = Array.from(categorySpending.entries())
+      .map(([category, amount]) => ({
+        category,
+        amount,
+        percentage: totalSpending > 0 ? (amount / totalSpending) * 100 : 0
+      }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 5);
+
+    // Prepare budget status
+    const budgetStatus = budgets.map((budget: any) => {
+      const categoryTransactions = recentTransactions.filter(
+        (t: any) => t.category === budget.category && 
+        (t.type === 'expense' || (t.amount && t.amount < 0))
+      );
+      const spent = categoryTransactions.reduce(
+        (sum: number, t: any) => sum + Math.abs(t.amount || 0), 0
+      );
+      
+      let status: 'under' | 'over' | 'on-track' = 'on-track';
+      const budgetAmount = budget.amount || budget.limit || 0;
+      if (spent > budgetAmount * 1.1) status = 'over';
+      else if (spent < budgetAmount * 0.9) status = 'under';
+
+      return {
+        category: budget.category || budget.name || 'Uncategorized',
+        spent,
+        budget: budgetAmount,
+        status
+      };
+    });
+
+    // Prepare investment data
+    let investmentPortfolio = null;
+    if (investments) {
+      investmentPortfolio = {
+        totalValue: investments.totalValue || investments.value || 0,
+        allocation: investments.allocation || [],
+        performance: investments.performance || { weekly: 0, monthly: 0, yearly: 0 }
+      };
+    }
+
+    // Prepare savings goals
+    const savingsGoals = goals.map((goal: any) => ({
+      goal: goal.name || goal.title || 'Savings Goal',
+      target: goal.targetAmount || goal.target || goal.amount || 0,
+      current: goal.currentAmount || goal.current || goal.progress || 0,
+      deadline: goal.targetDate ? new Date(goal.targetDate) : new Date()
+    }));
+
+    return {
+      userId: user.id || user.uid,
+      totalBalance,
+      monthlyIncome,
+      monthlyExpenses,
+      recentTransactions: recentTransactions.map((t: any) => ({
+        description: t.description || t.name || t.title || 'Transaction',
+        amount: t.amount || t.value || 0,
+        date: t.date ? new Date(t.date) : t.createdAt ? new Date(t.createdAt) : new Date(),
+        category: t.category || t.type || 'Uncategorized'
+      })),
+      topSpendingCategories,
+      budgetStatus,
+      investmentPortfolio,
+      savingsGoals,
+      hasData: transactions.length > 0 || accounts.length > 0
+    };
+
+  } catch (error) {
+    console.error('Error preparing user financial data:', error);
+    return null;
+  }
+}
+
+function generateResponse(query: string, userData: any): string {
+  // If no user data or no data found
+  if (!userData || !userData.hasData) {
+    return 'I don\'t see any financial data in your accounts yet. Please add some transactions, accounts, or budgets to get personalized advice.';
+  }
+
+  // Check for specific questions
+  if (query.includes('balance') || query.includes('money') || query.includes('account')) {
+    return `I can see your total balance across all accounts is **$${userData.totalBalance.toFixed(2)}**. ` +
+           `Your monthly income is **$${userData.monthlyIncome.toFixed(2)}** and expenses are **$${userData.monthlyExpenses.toFixed(2)}**. ` +
+           `You have **${userData.recentTransactions.length} recent transactions** in the last 30 days.`;
+  }
+
+  if (query.includes('transaction')) {
+    if (userData.recentTransactions.length > 0) {
+      const recent = userData.recentTransactions.slice(0, 3);
+      const transactionsList = recent.map((t: any, i: number) => 
+        `${i+1}. ${t.description}: $${Math.abs(t.amount).toFixed(2)}`
+      ).join('\n');
+      
+      return `Here are your recent transactions:\n\n${transactionsList}\n\nYou have ${userData.recentTransactions.length} total transactions in the last 30 days.`;
+    } else {
+      return 'You don\'t have any recent transactions in the last 30 days.';
+    }
+  }
+
+  if (query.includes('spending') || query.includes('expense') || query.includes('category')) {
+    if (userData.topSpendingCategories.length > 0) {
+      const categories = userData.topSpendingCategories.map((c: any, i: number) => 
+        `${i+1}. ${c.category}: $${c.amount.toFixed(2)} (${c.percentage.toFixed(1)}%)`
+      ).join('\n');
+      
+      return `Your top spending categories are:\n\n${categories}\n\nTotal monthly expenses: **$${userData.monthlyExpenses.toFixed(2)}**`;
+    } else {
+      return `Your monthly expenses are **$${userData.monthlyExpenses.toFixed(2)}**. I don\'t see specific spending categories yet.`;
+    }
+  }
+
+  if (query.includes('budget')) {
+    if (userData.budgetStatus.length > 0) {
+      const budgetSummary = userData.budgetStatus.map((b: any) => 
+        `${b.category}: $${b.spent.toFixed(2)} of $${b.budget.toFixed(2)} (${b.status})`
+      ).join('\n');
+      
+      return `Your budget status:\n\n${budgetSummary}`;
+    } else {
+      return 'You don\'t have any budgets set up yet. Would you like help creating a budget?';
+    }
+  }
+
+  if (query.includes('investment') || query.includes('portfolio')) {
+    if (userData.investmentPortfolio) {
+      return `Your investment portfolio is worth **$${userData.investmentPortfolio.totalValue.toFixed(2)}**. ` +
+             `Would you like a detailed analysis of your portfolio performance?`;
+    } else {
+      return 'You don\'t have any investments tracked yet. Would you like information about starting to invest?';
+    }
+  }
+
+  if (query.includes('savings') || query.includes('goal')) {
+    if (userData.savingsGoals.length > 0) {
+      const goalsSummary = userData.savingsGoals.map((g: any, i: number) => 
+        `${i+1}. ${g.goal}: $${g.current.toFixed(2)} of $${g.target.toFixed(2)} (${((g.current / g.target) * 100).toFixed(1)}%)`
+      ).join('\n');
+      
+      return `Your savings goals:\n\n${goalsSummary}`;
+    } else {
+      return 'You don\'t have any savings goals set up yet. Would you like help setting financial goals?';
+    }
+  }
+
+  if (query.includes('income')) {
+    return `Your monthly income is **$${userData.monthlyIncome.toFixed(2)}**. ` +
+           `Your expenses are **$${userData.monthlyExpenses.toFixed(2)}**, ` +
+           `which means you\'re saving **$${(userData.monthlyIncome - userData.monthlyExpenses).toFixed(2)}** per month.`;
+  }
+
+  if (query.includes('overview') || query.includes('summary') || query.includes('how am i doing')) {
+    return `Here\'s your financial overview:\n\n` +
+           `• Total Balance: **$${userData.totalBalance.toFixed(2)}**\n` +
+           `• Monthly Income: **$${userData.monthlyIncome.toFixed(2)}**\n` +
+           `• Monthly Expenses: **$${userData.monthlyExpenses.toFixed(2)}**\n` +
+           `• Monthly Savings: **$${(userData.monthlyIncome - userData.monthlyExpenses).toFixed(2)}**\n` +
+           `• Recent Transactions: **${userData.recentTransactions.length}** in last 30 days\n` +
+           `• Savings Rate: **${userData.monthlyIncome > 0 ? ((userData.monthlyIncome - userData.monthlyExpenses) / userData.monthlyIncome * 100).toFixed(1) : 0}%**`;
+  }
+
+  // Default response
+  return `Based on your financial data:\n\n` +
+         `• Total Balance: $${userData.totalBalance.toFixed(2)}\n` +
+         `• Monthly Income: $${userData.monthlyIncome.toFixed(2)}\n` +
+         `• Monthly Expenses: $${userData.monthlyExpenses.toFixed(2)}\n` +
+         `• You have ${userData.recentTransactions.length} recent transactions.\n\n` +
+         `What specific aspect of your finances would you like to discuss?`;
+}
+
+// Keep backward compatibility
+export async function chatWithAssistant(query: string): Promise<string> {
+  return 'Please use the useAIAssistant hook from your React component.';
+}
