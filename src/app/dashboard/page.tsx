@@ -510,7 +510,6 @@ function UserWelcome() {
           {greeting}, {userData?.displayName?.split(' ')[0] || 'User'}!
         </h1>
         <div className="flex items-center gap-3">
-         
           {isPro && (
             <Badge variant="default" className="bg-gradient-to-r from-warning to-orange-600 text-white text-xs px-3 py-1">
               <Crown className="h-3 w-3 mr-1" />
@@ -1215,7 +1214,7 @@ function QuickActions({ onAddTransactionClick, showBalance, setShowBalance }: {
   );
 }
 
-// Export Dashboard Component
+// Export Dashboard Component with Fixed Implementation
 function ExportDashboard({ 
   transactions, 
   stats,
@@ -1230,6 +1229,96 @@ function ExportDashboard({
   const { toast } = useToast();
   const [exporting, setExporting] = useState(false);
 
+  // Generate CSV from data
+  const generateCSV = (data: any[]) => {
+    if (!data || data.length === 0) return '';
+    
+    // Get headers from the first object
+    const headers = Object.keys(data[0]).join(',');
+    
+    // Convert each object to CSV row
+    const rows = data.map(item => {
+      return Object.values(item).map(value => {
+        // Handle special characters and wrap in quotes if needed
+        if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
+          return `"${value.replace(/"/g, '""')}"`;
+        }
+        return value;
+      }).join(',');
+    });
+    
+    return [headers, ...rows].join('\n');
+  };
+
+  // Generate JSON from data
+  const generateJSON = (data: any[]) => {
+    return JSON.stringify({
+      exportDate: new Date().toISOString(),
+      timeRange,
+      summary: {
+        totalBalance: stats.totalBalance,
+        totalIncome: stats.totalIncome,
+        totalExpense: stats.totalExpense,
+        savingsRate: stats.savingsRate,
+        transactionCount: transactions.length
+      },
+      transactions: data
+    }, null, 2);
+  };
+
+  // Download file helper
+  const downloadFile = (content: string, filename: string, type: string) => {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Format transaction data for export
+  const formatTransactionsForExport = () => {
+    return transactions.map((transaction: Transaction) => ({
+      Date: transaction.date,
+      Description: transaction.description || '',
+      Amount: formatCurrency(transaction.amount),
+      Type: transaction.type,
+      Category: transaction.category || 'Uncategorized',
+      Account: transaction.accountName || 'Unknown',
+      'Created At': transaction.createdAt ? new Date(transaction.createdAt).toLocaleString() : 'N/A',
+      Status: transaction.status || 'completed',
+      'Transaction ID': transaction.id || 'N/A'
+    }));
+  };
+
+  // Generate comprehensive dashboard report
+  const generateDashboardReport = () => {
+    const reportData = formatTransactionsForExport();
+    const dashboardStats = {
+      'Report Generated': new Date().toLocaleString(),
+      'Time Range': timeRange,
+      'Total Balance': formatCurrency(stats.totalBalance),
+      'Total Income': formatCurrency(stats.totalIncome),
+      'Total Expenses': formatCurrency(stats.totalExpense),
+      'Net Savings': formatCurrency(stats.totalIncome - stats.totalExpense),
+      'Savings Rate': `${stats.savingsRate.toFixed(2)}%`,
+      'Transaction Count': transactions.length,
+      'Average Transaction Value': formatCurrency(
+        transactions.length > 0 
+          ? transactions.reduce((sum, t) => sum + t.amount, 0) / transactions.length 
+          : 0
+      )
+    };
+
+    return {
+      metadata: dashboardStats,
+      transactions: reportData
+    };
+  };
+
   const handleExport = async (format: 'csv' | 'json' | 'print') => {
     if (transactions.length === 0) {
       toast({
@@ -1243,20 +1332,147 @@ function ExportDashboard({
     setExporting(true);
     
     try {
-      setTimeout(() => {
-        toast({
-          title: "Export successful",
-          description: `Dashboard data exported as ${format.toUpperCase()}`,
-          variant: "default"
-        });
-        setExporting(false);
-      }, 1000);
+      const report = generateDashboardReport();
+      const timestamp = new Date().toISOString().split('T')[0];
+      
+      switch (format) {
+        case 'csv':
+          const csvContent = generateCSV(report.transactions);
+          if (csvContent) {
+            downloadFile(csvContent, `financial-report-${timestamp}.csv`, 'text/csv;charset=utf-8;');
+            toast({
+              title: "Export successful",
+              description: "Dashboard data exported as CSV",
+              variant: "default"
+            });
+          }
+          break;
+          
+        case 'json':
+          const jsonContent = generateJSON(report.transactions);
+          downloadFile(jsonContent, `financial-report-${timestamp}.json`, 'application/json');
+          toast({
+            title: "Export successful",
+            description: "Dashboard data exported as JSON",
+            variant: "default"
+          });
+          break;
+          
+        case 'print':
+          // Create printable HTML content
+          const printWindow = window.open('', '_blank');
+          if (printWindow) {
+            const printContent = `
+              <!DOCTYPE html>
+              <html>
+              <head>
+                <title>Financial Dashboard Report - ${timestamp}</title>
+                <style>
+                  body { font-family: Arial, sans-serif; margin: 40px; }
+                  h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
+                  h2 { color: #666; margin-top: 30px; }
+                  .stats-grid { 
+                    display: grid; 
+                    grid-template-columns: repeat(2, 1fr); 
+                    gap: 20px; 
+                    margin: 20px 0; 
+                  }
+                  .stat-card { 
+                    background: #f5f5f5; 
+                    padding: 15px; 
+                    border-radius: 8px; 
+                    border-left: 4px solid #007bff; 
+                  }
+                  table { 
+                    width: 100%; 
+                    border-collapse: collapse; 
+                    margin: 20px 0; 
+                  }
+                  th, td { 
+                    padding: 12px; 
+                    text-align: left; 
+                    border-bottom: 1px solid #ddd; 
+                  }
+                  th { 
+                    background-color: #f8f9fa; 
+                    font-weight: bold; 
+                  }
+                  tr:hover { background-color: #f5f5f5; }
+                  .total-row { font-weight: bold; background-color: #e9ecef; }
+                  @media print {
+                    body { margin: 20px; }
+                    .no-print { display: none; }
+                  }
+                </style>
+              </head>
+              <body>
+                <h1>Financial Dashboard Report</h1>
+                <p>Generated on: ${new Date().toLocaleString()}</p>
+                <p>Time Range: ${timeRange}</p>
+                
+                <h2>Summary Statistics</h2>
+                <div class="stats-grid">
+                  ${Object.entries(report.metadata).map(([key, value]) => `
+                    <div class="stat-card">
+                      <strong>${key}:</strong><br>
+                      <span style="font-size: 1.2em; color: #007bff;">${value}</span>
+                    </div>
+                  `).join('')}
+                </div>
+                
+                <h2>Transactions (${report.transactions.length} total)</h2>
+                <table>
+                  <thead>
+                    <tr>
+                      ${Object.keys(report.transactions[0] || {}).map(key => 
+                        `<th>${key}</th>`
+                      ).join('')}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${report.transactions.map(transaction => `
+                      <tr>
+                        ${Object.values(transaction).map(value => 
+                          `<td>${value}</td>`
+                        ).join('')}
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+                
+                <div class="no-print" style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd;">
+                  <p style="font-size: 0.9em; color: #666;">
+                    Generated by Financial Dashboard • Report ID: ${Date.now()}
+                  </p>
+                </div>
+                
+                <script>
+                  window.onload = () => {
+                    window.print();
+                    setTimeout(() => {
+                      window.close();
+                    }, 1000);
+                  };
+                </script>
+              </body>
+              </html>
+            `;
+            
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+          } else {
+            throw new Error('Could not open print window');
+          }
+          break;
+      }
     } catch (error) {
+      console.error('Export error:', error);
       toast({
         variant: "destructive",
         title: "Export failed",
         description: "Failed to export data. Please try again.",
       });
+    } finally {
       setExporting(false);
     }
   };
@@ -1582,6 +1798,256 @@ function RecentActivity({ transactions, investments }: {
   );
 }
 
+// Financial Overview Graph Component - Fixed to use actual investments
+function FinancialOverviewGraph({ 
+  transactions,
+  investments,
+  timeRange = '6M'
+}: { 
+  transactions: Transaction[],
+  investments: any[],
+  timeRange?: string
+}) {
+  const { formatCurrency } = useCurrency();
+
+  // Process chart data based on time range
+  const chartData = useMemo(() => {
+    const now = new Date();
+    let monthsToShow = 6; // Default for 6 months
+    
+    // Set months based on time range
+    if (timeRange === '3M') monthsToShow = 3;
+    else if (timeRange === '1Y') monthsToShow = 12;
+    
+    const monthlyData: { [key: string]: { income: number; expense: number; investment: number } } = {};
+    
+    // Filter transactions for the selected time period
+    const filteredTransactions = transactions.filter(t => {
+      if (!t.date || typeof t.date !== 'string' || !t.date.includes('-')) return false;
+      
+      const dateParts = t.date.split('-').map(Number);
+      if (dateParts.length < 3) return false;
+      
+      const transactionDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+      const cutoffDate = subMonths(now, monthsToShow);
+      cutoffDate.setDate(1);
+      
+      return isAfter(transactionDate, cutoffDate) || transactionDate.getTime() === cutoffDate.getTime();
+    });
+
+    // Process each transaction
+    filteredTransactions.forEach(t => {
+      const dateParts = t.date.split('-').map(Number);
+      const dateObj = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+      const month = dateObj.toLocaleString('default', { month: 'short' });
+
+      if (!monthlyData[month]) {
+        monthlyData[month] = { income: 0, expense: 0, investment: 0 };
+      }
+      
+      if (t.type === 'income') {
+        monthlyData[month].income += t.amount;
+      } else if (t.type === 'expense') {
+        monthlyData[month].expense += t.amount;
+      }
+      // Note: We don't process investment transactions here since investments are separate
+    });
+
+    // Process investments
+    investments.forEach(inv => {
+      const purchaseDate = inv.purchaseDate || inv.createdAt || inv.date;
+      if (!purchaseDate) return;
+      
+      try {
+        const dateParts = purchaseDate.split('-').map(Number);
+        if (dateParts.length < 3) return;
+        
+        const investmentDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+        const cutoffDate = subMonths(now, monthsToShow);
+        cutoffDate.setDate(1);
+        
+        if (isAfter(investmentDate, cutoffDate) || investmentDate.getTime() === cutoffDate.getTime()) {
+          const month = investmentDate.toLocaleString('default', { month: 'short' });
+          
+          if (!monthlyData[month]) {
+            monthlyData[month] = { income: 0, expense: 0, investment: 0 };
+          }
+          
+          // Add investment amount (using purchase price for investment flow)
+          monthlyData[month].investment += inv.purchasePrice || inv.amount || 0;
+        }
+      } catch (error) {
+        console.error('Error processing investment date:', error);
+      }
+    });
+    
+    // Generate array of months in chronological order
+    const result: { month: string; income: number; expense: number; investment: number }[] = [];
+    
+    for (let i = monthsToShow - 1; i >= 0; i--) {
+      const d = subMonths(now, i);
+      const monthName = d.toLocaleString('default', { month: 'short' });
+      result.push({
+        month: monthName,
+        income: monthlyData[monthName]?.income || 0,
+        expense: monthlyData[monthName]?.expense || 0,
+        investment: monthlyData[monthName]?.investment || 0,
+      });
+    }
+
+    return result;
+  }, [transactions, investments, timeRange]);
+
+  // Calculate totals for the legend
+  const totals = useMemo(() => {
+    return chartData.reduce((acc, month) => ({
+      income: acc.income + month.income,
+      expense: acc.expense + month.expense,
+      investment: acc.investment + month.investment,
+    }), { income: 0, expense: 0, investment: 0 });
+  }, [chartData]);
+
+  if (chartData.length === 0) {
+    return (
+      <div className="h-[300px] flex items-center justify-center border border-border rounded-xl bg-secondary/50">
+        <div className="text-center">
+          <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+          <p className="text-muted-foreground">No financial data available for the selected period</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="h-[300px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0}/>
+              </linearGradient>
+              <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0}/>
+              </linearGradient>
+              <linearGradient id="colorInvestment" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="hsl(var(--chart-3))" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="hsl(var(--chart-3))" stopOpacity={0}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+            <XAxis 
+              dataKey="month" 
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+            />
+            <YAxis 
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+              tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+            />
+            <Tooltip
+              contentStyle={{ 
+                backgroundColor: 'hsl(var(--popover))',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: '8px',
+                color: 'hsl(var(--popover-foreground))'
+              }}
+              formatter={(value: number) => [formatCurrency(value), 'Amount']}
+              labelFormatter={(label) => `Month: ${label}`}
+            />
+            <Area
+              type="monotone"
+              dataKey="income"
+              stroke="hsl(var(--chart-1))"
+              fillOpacity={1}
+              fill="url(#colorIncome)"
+              strokeWidth={2}
+              dot={{ stroke: 'hsl(var(--chart-1))', strokeWidth: 2, r: 4 }}
+              activeDot={{ r: 6, strokeWidth: 0 }}
+            />
+            <Area
+              type="monotone"
+              dataKey="expense"
+              stroke="hsl(var(--chart-2))"
+              fillOpacity={1}
+              fill="url(#colorExpense)"
+              strokeWidth={2}
+              dot={{ stroke: 'hsl(var(--chart-2))', strokeWidth: 2, r: 4 }}
+              activeDot={{ r: 6, strokeWidth: 0 }}
+            />
+            <Area
+              type="monotone"
+              dataKey="investment"
+              stroke="hsl(var(--chart-3))"
+              fillOpacity={1}
+              fill="url(#colorInvestment)"
+              strokeWidth={2}
+              dot={{ stroke: 'hsl(var(--chart-3))', strokeWidth: 2, r: 4 }}
+              activeDot={{ r: 6, strokeWidth: 0 }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="flex justify-center gap-6 mt-4">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-primary"></div>
+          <span className="text-sm text-muted-foreground">Income: {formatCurrency(totals.income)}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-destructive"></div>
+          <span className="text-sm text-muted-foreground">Expenses: {formatCurrency(totals.expense)}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+          <span className="text-sm text-muted-foreground">Investments: {formatCurrency(totals.investment)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Card wrapper for the financial overview - Updated to pass investments
+function FinancialOverviewCard({ 
+  transactions,
+  investments
+}: { 
+  transactions: Transaction[],
+  investments: any[]
+}) {
+  const [selectedRange, setSelectedRange] = useState('6M');
+
+  return (
+    <ModernCard className="col-span-2">
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0 pb-4">
+        <div className="space-y-1">
+          <CardTitle className="text-lg">Financial Overview</CardTitle>
+          <CardDescription>Track your income, expenses, and investments over time</CardDescription>
+        </div>
+        <Tabs value={selectedRange} onValueChange={setSelectedRange} className="w-full sm:w-auto">
+          <TabsList className="grid w-full grid-cols-3 bg-secondary">
+            <TabsTrigger value="3M">3M</TabsTrigger>
+            <TabsTrigger value="6M">6M</TabsTrigger>
+            <TabsTrigger value="1Y">1Y</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </CardHeader>
+      <CardContent>
+        <FinancialOverviewGraph 
+          transactions={transactions} 
+          investments={investments}
+          timeRange={selectedRange} 
+        />
+      </CardContent>
+    </ModernCard>
+  );
+}
+
 export default function DashboardPage() {
   const { transactions, loading: transactionsLoading } = useTransactions();
   const { budgets, loading: budgetsLoading } = useBudgets();
@@ -1807,7 +2273,7 @@ export default function DashboardPage() {
             </Select>
             
             <ExportDashboard 
-              transactions={filteredTransactions}
+              transactions={transactions}
               stats={stats}
               timeRange={timeRange}
               formatCurrency={formatCurrency}
@@ -1846,14 +2312,17 @@ export default function DashboardPage() {
               setChartTimeRange={setChartTimeRange}
             />
 
+            
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-7">
               <SpendingByCategory transactions={filteredTransactions} />
               <InvestmentTracker investments={actualInvestments} />
             </div>
             <BudgetBreakdown budgets={budgetWithSpent} />
+            
           </div>
-
-          <div className="space-y-6">
+    
+          <div className="space-y-8">
             <FinancialHealthScore 
               totalIncome={totalIncome}
               totalExpense={totalExpense}
@@ -1872,10 +2341,14 @@ export default function DashboardPage() {
             <QuickInsights transactions={filteredTransactions} budgets={budgets} />
           </div>
         </div>
-
+// In your main DashboardPage component, update the FinancialOverviewCard usage:
+<FinancialOverviewCard 
+  transactions={transactions} 
+  investments={actualInvestments}
+/>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <RecentActivity transactions={filteredTransactions} investments={actualInvestments} />
-          <SavingsTips transactions={filteredTransactions} />
+          <SavingsTips transactions={transactions} />
           <FinancialGoalsCard 
             goals={goals as Goal[]} 
             onAddNewGoal={() => setGoalDialogOpen(true)} 

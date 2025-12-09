@@ -1,10 +1,7 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
   "/login/page": "app/login/page.js",
-  "/page": "app/page.js",
-  "/dashboard/score/page": "app/dashboard/score/page.js",
-  "/dashboard/profile/page": "app/dashboard/profile/page.js",
-  "/dashboard/settings/page": "app/dashboard/settings/page.js",
-  "/dashboard/upgrade/page": "app/dashboard/upgrade/page.js",
-  "/dashboard/page": "app/dashboard/page.js"
+  "/dashboard/investments/page": "app/dashboard/investments/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/dashboard/assistant/page": "app/dashboard/assistant/page.js"
 }
