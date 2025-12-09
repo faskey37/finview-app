@@ -2341,7 +2341,7 @@ export default function DashboardPage() {
             <QuickInsights transactions={filteredTransactions} budgets={budgets} />
           </div>
         </div>
-// In your main DashboardPage component, update the FinancialOverviewCard usage:
+
 <FinancialOverviewCard 
   transactions={transactions} 
   investments={actualInvestments}
