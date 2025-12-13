@@ -1,5 +1,5 @@
 {
-  "/icon.png/route": "app/icon.png/route.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/dashboard/assistant/page": "app/dashboard/assistant/page.js"
+  "/_not-found/page": "app/_not-found/page.js",
+  "/dashboard/assistant/page": "app/dashboard/assistant/page.js",
+  "/dashboard/page": "app/dashboard/page.js"
 }
