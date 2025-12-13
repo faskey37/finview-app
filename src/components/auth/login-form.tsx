@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
 import React from "react";
-import { signIn, sendPasswordReset } from "@/hooks/use-auth";
+import { signIn } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -18,17 +18,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
@@ -39,7 +28,6 @@ export function LoginForm() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
-  const [isSendingReset, setIsSendingReset] = React.useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -69,34 +57,6 @@ export function LoginForm() {
     }
   }
 
-  async function handlePasswordReset() {
-    const email = form.getValues("email");
-    if (!email) {
-      toast({
-        variant: "destructive",
-        title: "Email Required",
-        description: "Please enter your email address to reset your password.",
-      });
-      return;
-    }
-    setIsSendingReset(true);
-    try {
-      await sendPasswordReset(email);
-      toast({
-        title: "Email Sent",
-        description: "Check your inbox for a password reset link.",
-      });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to send reset email. Please check the email address.",
-      });
-    } finally {
-      setIsSendingReset(false);
-    }
-  }
-
   return (
     <div className="w-full max-w-sm mt-8">
       <Form {...form}>
@@ -119,12 +79,7 @@ export function LoginForm() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <div className="flex items-center justify-between">
-                    <FormLabel>Password</FormLabel>
-                    <Button type="button" variant="link" className="h-auto p-0 text-xs" onClick={handlePasswordReset} disabled={isSendingReset}>
-                        {isSendingReset ? "Sending..." : "Forgot password?"}
-                    </Button>
-                </div>
+                <FormLabel>Password</FormLabel>
                 <FormControl>
                   <Input type="password" placeholder="••••••••" {...field} />
                 </FormControl>

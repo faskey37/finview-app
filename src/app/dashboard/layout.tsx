@@ -1,74 +1,51 @@
 
 "use client";
 
-import * as React from "react";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
-import { AppLoader } from "@/components/app-loader";
-import { cn } from "@/lib/utils";
-import { NotificationContext, useRealtimeNotifications, type Notification } from "@/hooks/use-notifications";
-import { Toaster } from "@/components/ui/toaster";
+import { SidebarProvider } from "@/hooks/use-sidebar";
+import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { DashboardHeader } from "@/components/dashboard/header";
-import { BellIcon, Sparkles } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
-function NotificationProvider({ children }: { children: ReactNode }) {
-    const [notifications, setNotifications] = React.useState<Notification[]>([]);
-
-    const addNotification = (notification: Omit<Notification, 'id' | 'date' | 'read'>) => {
-        const newNotification: Notification = {
-            ...notification,
-            id: crypto.randomUUID(),
-            date: new Date(),
-            read: false
-        };
-        setNotifications(prev => [newNotification, ...prev].slice(0, 20)); // Keep last 20
-    };
-    
-    const markAsRead = () => {
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    };
-
-    return (
-        <NotificationContext.Provider value={{ notifications, addNotification, markAsRead }}>
-            {children}
-        </NotificationContext.Provider>
-    );
-}
-
-function DashboardContent({ children }: { children: ReactNode }) {
+export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
 
-  useRealtimeNotifications();
-
   useEffect(() => {
+    // If loading is finished and there's no user, redirect to login page.
     if (!loading && !user) {
       router.replace("/");
     }
   }, [loading, user, router]);
 
+  // While loading or if there is no user, show a loading skeleton.
+  // This prevents rendering the dashboard for logged-out users.
   if (loading || !user) {
-    return <AppLoader />;
+    return (
+       <div className="flex h-screen w-full items-center justify-center">
+         <div className="flex flex-col items-center gap-4">
+            <Skeleton className="h-12 w-12 rounded-full" />
+            <Skeleton className="h-4 w-48" />
+         </div>
+       </div>
+    );
   }
-
+  
+  // If user is logged in, render the full dashboard layout.
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <DashboardHeader />
-      <main className="flex-1 overflow-y-auto no-scrollbar p-4 md:p-8 pt-20 md:pt-24">
-          {children}
-      </main>
-      <Toaster />
-    </div>
-  );
-}
-
-
-export default function DashboardLayout({ children }: { children: ReactNode }) {
-  return (
-      <NotificationProvider>
-        <DashboardContent>{children}</DashboardContent>
-      </NotificationProvider>
+    <SidebarProvider>
+      <div className="flex h-screen overflow-hidden bg-background">
+        <DashboardSidebar />
+        <div className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
+          <DashboardHeader />
+          <main className="flex-1 p-4 md:p-8">
+            {children}
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
   );
 }

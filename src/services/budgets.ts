@@ -1,6 +1,6 @@
 
 import { db, auth } from '@/lib/firebase';
-import { collection, addDoc, onSnapshot, query, deleteDoc, doc, getDocs } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, deleteDoc, doc } from 'firebase/firestore';
 import type { Budget } from '@/lib/types';
 
 const getBudgetsCollection = () => {

@@ -59,31 +59,26 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import type { Account, Transaction } from "@/lib/types"
+import type { Transaction } from "@/lib/types"
 import { addTransaction, deleteTransaction } from "@/services/transactions"
 import { useToast } from "@/hooks/use-toast"
-import { useCurrency } from "@/hooks/use-currency"
 
 interface RecentTransactionsProps {
-  transactions: Transaction[];
-  accounts: Account[];
-  addDialogOpen: boolean;
-  setAddDialogOpen: (open: boolean) => void;
+  transactions: Transaction[]
 }
 
 const transactionSchema = z.object({
   description: z.string().min(1, "Description is required"),
-  amount: z.coerce.number().min(0.01, "Amount must be positive").max(1000000000, "Amount is too large"),
+  amount: z.coerce.number().min(0.01, "Amount must be positive"),
   type: z.enum(["income", "expense"]),
   category: z.string().min(1, "Category is required"),
-  accountId: z.string().min(1, "Account is required"),
   date: z.string().optional(),
 })
 
-export function RecentTransactions({ transactions, accounts, addDialogOpen, setAddDialogOpen }: RecentTransactionsProps) {
+export function RecentTransactions({ transactions }: RecentTransactionsProps) {
+  const [addDialogOpen, setAddDialogOpen] = React.useState(false)
   const [isDeleting, setIsDeleting] = React.useState(false)
   const { toast } = useToast()
-  const { formatCurrency, currency, convertToBaseCurrency } = useCurrency();
 
   const form = useForm<z.infer<typeof transactionSchema>>({
     resolver: zodResolver(transactionSchema),
@@ -92,17 +87,14 @@ export function RecentTransactions({ transactions, accounts, addDialogOpen, setA
       amount: 0,
       type: "expense",
       category: "",
-      accountId: "",
     },
   })
 
   async function handleAddTransaction(values: z.infer<typeof transactionSchema>) {
     try {
-      const baseAmount = convertToBaseCurrency(values.amount, currency);
-
       await addTransaction({
         ...values,
-        amount: baseAmount,
+      
         date: new Date().toLocaleDateString('en-CA')
       });
       form.reset();
@@ -127,11 +119,18 @@ export function RecentTransactions({ transactions, accounts, addDialogOpen, setA
     }
   }
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(amount)
+  }
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle className="text-lg">Recent Transactions</CardTitle>
+          <CardTitle>Recent Transactions</CardTitle>
           <CardDescription>
             A list of your recent income and expenses.
           </CardDescription>
@@ -140,7 +139,7 @@ export function RecentTransactions({ transactions, accounts, addDialogOpen, setA
           <DialogTrigger asChild>
             <Button size="sm" className="gap-1">
               <PlusCircle />
-              Add
+              Add Transaction
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -173,28 +172,6 @@ export function RecentTransactions({ transactions, accounts, addDialogOpen, setA
                     </FormItem>
                   )}
                 />
-                 <FormField
-                  control={form.control}
-                  name="accountId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Account</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select an account" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {accounts.map(account => (
-                              <SelectItem key={account.id} value={account.id}>{account.provider}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                       <FormMessage />
-                    </FormItem>
-                  )}
-                />
                 <FormField
                   control={form.control}
                   name="description"
@@ -202,7 +179,7 @@ export function RecentTransactions({ transactions, accounts, addDialogOpen, setA
                     <FormItem>
                       <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. Groceries" {...field} maxLength={30} />
+                        <Input placeholder="e.g. Groceries" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -213,7 +190,7 @@ export function RecentTransactions({ transactions, accounts, addDialogOpen, setA
                   name="amount"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Amount (in {currency})</FormLabel>
+                      <FormLabel>Amount</FormLabel>
                       <FormControl>
                         <Input type="number" step="0.01" {...field} />
                       </FormControl>
@@ -234,15 +211,15 @@ export function RecentTransactions({ transactions, accounts, addDialogOpen, setA
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Food">Food</SelectItem>
-                          <SelectItem value="Transport">Transport</SelectItem>
-                          <SelectItem value="Shopping">Shopping</SelectItem>
-                          <SelectItem value="Housing">Housing</SelectItem>
-                          <SelectItem value="Entertainment">Entertainment</SelectItem>
-                          <SelectItem value="Health">Health</SelectItem>
-                          <SelectItem value="Salary">Salary</SelectItem>
-                          <SelectItem value="Freelance">Freelance</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
+                          <SelectItem value="food">Food</SelectItem>
+                          <SelectItem value="transport">Transport</SelectItem>
+                          <SelectItem value="shopping">Shopping</SelectItem>
+                          <SelectItem value="housing">Housing</SelectItem>
+                          <SelectItem value="entertainment">Entertainment</SelectItem>
+                          <SelectItem value="health">Health</SelectItem>
+                          <SelectItem value="salary">Salary</SelectItem>
+                          <SelectItem value="freelance">Freelance</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
                         </SelectContent>
                       </Select>
                        <FormMessage />
@@ -262,8 +239,8 @@ export function RecentTransactions({ transactions, accounts, addDialogOpen, setA
           <TableHeader>
             <TableRow>
               <TableHead>Description</TableHead>
-              <TableHead className="hidden sm:table-cell">Account</TableHead>
               <TableHead className="hidden sm:table-cell">Category</TableHead>
+              <TableHead className="hidden sm:table-cell">Type</TableHead>
               <TableHead className="hidden md:table-cell">Date</TableHead>
               <TableHead className="text-right">Amount</TableHead>
               <TableHead>
@@ -272,18 +249,22 @@ export function RecentTransactions({ transactions, accounts, addDialogOpen, setA
             </TableRow>
           </TableHeader>
           <TableBody>
-            {transactions.slice(0, 5).map((transaction) => {
-              const account = accounts.find(a => a.id === transaction.accountId);
-              return (
+            {transactions.map((transaction) => (
               <TableRow key={transaction.id}>
                 <TableCell className="font-medium">
                   {transaction.description}
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">
-                  {account?.provider || 'N/A'}
+                  <Badge variant="outline">{transaction.category}</Badge>
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">
-                  <Badge variant="outline">{transaction.category}</Badge>
+                  <Badge
+                    variant={
+                      transaction.type === "income" ? "default" : "secondary"
+                    }
+                  >
+                    {transaction.type}
+                  </Badge>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">{transaction.date}</TableCell>
                 <TableCell
@@ -336,7 +317,7 @@ export function RecentTransactions({ transactions, accounts, addDialogOpen, setA
                   </AlertDialog>
                 </TableCell>
               </TableRow>
-            )})}
+            ))}
           </TableBody>
         </Table>
       </CardContent>

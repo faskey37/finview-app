@@ -1,15 +1,18 @@
 
 import { db, auth } from '@/lib/firebase';
-import { collection, addDoc, onSnapshot, query, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, deleteDoc, doc } from 'firebase/firestore';
 import type { Account } from '@/lib/types';
+
+const getAccountsCollection = () => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) throw new Error("User not logged in");
+    return collection(db, 'users', userId, 'accounts');
+}
 
 // Add a new account
 export const addAccount = async (account: Omit<Account, 'id'>) => {
-  const userId = auth.currentUser?.uid;
-  if (!userId) throw new Error("User not logged in. Cannot add account.");
   try {
-    const accountsCollection = collection(db, 'users', userId, 'accounts');
-    const docRef = await addDoc(accountsCollection, account);
+    const docRef = await addDoc(getAccountsCollection(), account);
     return docRef.id;
   } catch (e) {
     console.error("Error adding document: ", e);
@@ -18,13 +21,12 @@ export const addAccount = async (account: Omit<Account, 'id'>) => {
 };
 
 // Get real-time updates on accounts
-export const getAccounts = (callback: (accounts: Account[]) => void, errorCallback: (error: Error) => void) => {
-  const user = auth.currentUser;
-  if (!user) {
+export const getAccounts = (callback: (accounts: Account[]) => void) => {
+  if (!auth.currentUser) {
       callback([]);
       return () => {};
   }
-  const accountsCollection = collection(db, 'users', user.uid, 'accounts');
+  const accountsCollection = getAccountsCollection();
   const q = query(accountsCollection);
   
   const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -35,32 +37,16 @@ export const getAccounts = (callback: (accounts: Account[]) => void, errorCallba
     callback(accounts);
   }, (error) => {
     console.error("Error fetching accounts:", error);
-    errorCallback(error);
+    // You might want to handle this error in the UI
   });
 
   return unsubscribe;
 };
 
-// Update an account
-export const updateAccount = async (id: string, updates: Partial<Account>) => {
-    const userId = auth.currentUser?.uid;
-    if (!userId) throw new Error("User not logged in. Cannot update account.");
-    try {
-        const docRef = doc(db, 'users', userId, 'accounts', id);
-        await updateDoc(docRef, updates);
-    } catch (e) {
-        console.error("Error updating document: ", e);
-        throw new Error("Failed to update account");
-    }
-}
-
-
 // Delete an account
 export const deleteAccount = async (id: string) => {
-    const userId = auth.currentUser?.uid;
-    if (!userId) throw new Error("User not logged in. Cannot delete account.");
     try {
-        const docRef = doc(db, 'users', userId, 'accounts', id);
+        const docRef = doc(getAccountsCollection(), id);
         await deleteDoc(docRef);
     } catch (e) {
         console.error("Error deleting document: ", e);

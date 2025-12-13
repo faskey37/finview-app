@@ -1,8 +1,10 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { getAccounts, getAccounts as getAccountsFromSvc } from '@/services/accounts';
+import { useState, useEffect } from 'react';
+import { getAccounts } from '@/services/accounts';
 import type { Account } from '@/lib/types';
-import { useAuth } from './use-auth.tsx';
+import { useAuth } from '../hooks/use-auth';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 export function useAccounts() {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -10,59 +12,28 @@ export function useAccounts() {
   const [error, setError] = useState<Error | null>(null);
   const { user } = useAuth();
 
-  const fetchAccounts = useCallback(() => {
-    let unsubscribe: () => void;
-
-    if (user) {
-      setLoading(true);
-      unsubscribe = getAccounts(
-        (newAccounts) => {
-          setAccounts(newAccounts);
-          setLoading(false);
-          setError(null);
-        },
-        (e) => {
-          setError(e);
-          setLoading(false);
-        }
-      );
-    } else {
-      // Not logged in, clear data and stop loading
-      setAccounts([]);
-      setLoading(false);
-    }
-
-    // Cleanup subscription on component unmount or user change
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
-    };
-  }, [user]);
-
   useEffect(() => {
-    const unsubscribe = fetchAccounts();
-    return unsubscribe;
-  }, [fetchAccounts]);
-  
-  const refreshAccounts = useCallback(async () => {
-    // This is a mock refresh. In a real app, this would trigger a re-fetch from a Plaid-like service.
-    setLoading(true);
-    // Re-trigger the onSnapshot listener by calling the setup again
-    const unsubscribe = getAccountsFromSvc(
-        (newAccounts) => {
-          setAccounts(newAccounts);
-          setLoading(false);
-        },
-        (e) => {
-          setError(e);
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setLoading(true);
+        try {
+          const unsubscribeSnap = getAccounts((newAccounts) => {
+            setAccounts(newAccounts);
+            setLoading(false);
+          });
+          return () => unsubscribeSnap();
+        } catch (e) {
+          setError(e as Error);
           setLoading(false);
         }
-      );
-    // Immediately unsubscribe to just get one refresh
-    unsubscribe();
+      } else {
+        setAccounts([]);
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribeAuth();
   }, [user]);
 
-
-  return { accounts, loading, error, refreshAccounts };
+  return { accounts, loading, error };
 }

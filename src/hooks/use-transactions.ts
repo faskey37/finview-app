@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { getTransactions } from '@/services/transactions';
 import type { Transaction } from '@/lib/types';
@@ -12,17 +13,15 @@ export function useTransactions() {
   const { user } = useAuth();
 
   useEffect(() => {
-    let unsubscribeSnap: (() => void) | null = null;
-    console.log('transactions ', transactions)
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
         setLoading(true);
         try {
-          unsubscribeSnap = getTransactions((newTransactions) => {
+          const unsubscribeSnap = getTransactions((newTransactions) => {
             setTransactions(newTransactions);
             setLoading(false);
-            setError(null);
           });
+          return () => unsubscribeSnap();
         } catch (e) {
           setError(e as Error);
           setLoading(false);
@@ -30,16 +29,10 @@ export function useTransactions() {
       } else {
         setTransactions([]);
         setLoading(false);
-        setError(null);
       }
     });
 
-    return () => {
-      unsubscribeAuth();
-      if (unsubscribeSnap) {
-        unsubscribeSnap();
-      }
-    };
+    return () => unsubscribeAuth();
   }, [user]);
 
   return { transactions, loading, error };
