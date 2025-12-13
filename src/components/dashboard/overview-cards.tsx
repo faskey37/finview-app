@@ -1,6 +1,8 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAccounts } from "@/hooks/use-accounts";
 import { DollarSign, TrendingUp, TrendingDown } from "lucide-react";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface OverviewCardsProps {
   income: number;
@@ -9,14 +11,11 @@ interface OverviewCardsProps {
 
 export function OverviewCards({ income, expense }: OverviewCardsProps) {
   const { accounts } = useAccounts();
+  const { formatCurrency } = useCurrency();
   const balance = accounts.reduce((acc, account) => acc + account.balance, 0);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-  };
-
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Income</CardTitle>
@@ -47,6 +46,6 @@ export function OverviewCards({ income, expense }: OverviewCardsProps) {
           <p className="text-xs text-muted-foreground">Across all accounts</p>
         </CardContent>
       </Card>
-    </div>
+    </>
   );
 }

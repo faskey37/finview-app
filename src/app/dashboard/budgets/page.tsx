@@ -45,19 +45,17 @@ import {
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useCurrency } from "@/hooks/use-currency"
 
 const budgetSchema = z.object({
   category: z.string().min(1, "Category is required"),
   amount: z.coerce.number().min(1, "Amount must be greater than 0"),
 })
 
-const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-};
-
 export default function BudgetsPage() {
   const { budgets, loading: budgetsLoading } = useBudgets()
   const { transactions, loading: transactionsLoading } = useTransactions();
+  const { formatCurrency } = useCurrency();
   const [addDialogOpen, setAddDialogOpen] = React.useState(false)
   const [isDeleting, setIsDeleting] = React.useState(false)
   const { toast } = useToast()
@@ -110,7 +108,7 @@ export default function BudgetsPage() {
         <h1 className="text-3xl font-bold tracking-tight">Budgets</h1>
         <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button size="sm" className="gap-1">
+            <Button>
               <PlusCircle />
               Add Budget
             </Button>
@@ -192,14 +190,14 @@ export default function BudgetsPage() {
                         <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button aria-haspopup="true" size="icon" variant="ghost">
-                            <MoreHorizontal className="h-4 w-4" />
+                            <MoreHorizontal />
                             <span className="sr-only">Toggle menu</span>
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <AlertDialogTrigger asChild>
                             <DropdownMenuItem className="text-destructive">
-                                <Trash2 className="mr-2 h-4 w-4" />
+                                <Trash2 />
                                 Delete
                             </DropdownMenuItem>
                             </AlertDialogTrigger>
@@ -251,14 +249,14 @@ export default function BudgetsPage() {
       ) : (
         <Card className="flex flex-col items-center justify-center py-12">
             <CardHeader>
-                <CardTitle>No Budgets Found</CardTitle>
+                <CardTitle className="text-lg">No Budgets Found</CardTitle>
                 <CardDescription>Get started by creating a new budget.</CardDescription>
             </CardHeader>
              <CardContent>
                  <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
                     <DialogTrigger asChild>
                         <Button>
-                        <PlusCircle className="mr-2 h-4 w-4" />
+                        <PlusCircle />
                         Create Budget
                         </Button>
                     </DialogTrigger>
