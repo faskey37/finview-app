@@ -1,14 +1,15 @@
-"use client"
-import * as React from "react"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import * as z from "zod"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { PlusCircle, MoreHorizontal, Trash2, Edit2, TrendingUp, TrendingDown, Target, AlertTriangle } from "lucide-react"
-import { useBudgets } from "@/hooks/use-budgets"
-import { useTransactions } from "@/hooks/use-transactions"
-import { Skeleton } from "@/components/ui/skeleton"
+"use client";
+
+import * as React from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { PlusCircle, MoreHorizontal, Trash2, Edit2, TrendingUp, TrendingDown, Target, AlertTriangle } from "lucide-react";
+import { useBudgets } from "@/hooks/use-budgets";
+import { useTransactions } from "@/hooks/use-transactions";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import { 
   Form, 
   FormControl, 
@@ -25,11 +26,11 @@ import {
   FormItem, 
   FormLabel, 
   FormMessage 
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { addBudget, deleteBudget, } from "@/services/budgets"
-import { useToast } from "@/hooks/use-toast"
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { addBudget, deleteBudget, updateBudget } from "@/services/budgets";
+import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,22 +40,30 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Progress } from "@/components/ui/progress"
-import { cn } from "@/lib/utils"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { useCurrency } from "@/hooks/use-currency"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Budget } from "@/services/budgets"
+} from "@/components/ui/alert-dialog";
+import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useCurrency } from "@/hooks/use-currency";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+// Define the Budget type
+interface Budget {
+  id: string;
+  category: string;
+  amount: number;
+  period: "monthly" | "weekly" | "yearly";
+  createdAt?: string;
+}
 
 const budgetSchema = z.object({
   category: z.string().min(1, "Category is required"),
   amount: z.coerce.number().min(1, "Amount must be greater than 0"),
   period: z.enum(["monthly", "weekly", "yearly"]).default("monthly"),
-})
+});
 
 type BudgetWithSpent = Budget & {
   spent: number;
@@ -63,16 +72,17 @@ type BudgetWithSpent = Budget & {
 }
 
 export default function BudgetsPage() {
-  const { budgets, loading: budgetsLoading, refetch: refetchBudgets } = useBudgets()
+  const { budgets, loading: budgetsLoading, refetch: refetchBudgets } = useBudgets();
   const { transactions, loading: transactionsLoading } = useTransactions();
   const { formatCurrency } = useCurrency();
-  const [addDialogOpen, setAddDialogOpen] = React.useState(false)
-  const [editDialogOpen, setEditDialogOpen] = React.useState(false)
-  const [selectedBudget, setSelectedBudget] = React.useState<Budget | null>(null)
-  const [isDeleting, setIsDeleting] = React.useState(false)
-  const [isSubmitting, setIsSubmitting] = React.useState(false)
-  const [activeTab, setActiveTab] = React.useState("all")
-  const { toast } = useToast()
+  const [addDialogOpen, setAddDialogOpen] = React.useState(false);
+  const [editDialogOpen, setEditDialogOpen] = React.useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [selectedBudget, setSelectedBudget] = React.useState<Budget | null>(null);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState("all");
+  const { toast } = useToast();
 
   const loading = budgetsLoading || transactionsLoading;
 
@@ -94,6 +104,7 @@ export default function BudgetsPage() {
     },
   });
 
+  // Reset edit form when selected budget changes
   React.useEffect(() => {
     if (selectedBudget && editDialogOpen) {
       editForm.reset({
@@ -103,6 +114,13 @@ export default function BudgetsPage() {
       });
     }
   }, [selectedBudget, editDialogOpen, editForm]);
+
+  // Reset add form when dialog closes
+  React.useEffect(() => {
+    if (!addDialogOpen) {
+      form.reset();
+    }
+  }, [addDialogOpen, form]);
 
   const categories = [
     "Food & Dining",
@@ -119,27 +137,26 @@ export default function BudgetsPage() {
     "Subscriptions",
     "Gifts & Donations",
     "Other"
-  ]
+  ];
 
   async function handleAddBudget(values: z.infer<typeof budgetSchema>) {
     setIsSubmitting(true);
     try {
-      await addBudget(values)
-      form.reset()
-      setAddDialogOpen(false)
+      await addBudget(values);
+      form.reset();
+      setAddDialogOpen(false);
       await refetchBudgets();
       toast({ 
         title: "Budget created", 
         description: `Budget for ${values.category} has been created.`,
-        variant: "default"
-      })
+      });
     } catch (error) {
-      console.error("Error adding budget:", error)
+      console.error("Error adding budget:", error);
       toast({ 
         variant: "destructive", 
         title: "Error", 
         description: "Failed to create budget. Please try again." 
-      })
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -150,36 +167,38 @@ export default function BudgetsPage() {
     
     setIsSubmitting(true);
     try {
-      await updateBudget(selectedBudget.id, values)
-      setEditDialogOpen(false)
-      setSelectedBudget(null)
+      await updateBudget(selectedBudget.id, values);
+      setEditDialogOpen(false);
+      setSelectedBudget(null);
       await refetchBudgets();
       toast({ 
         title: "Budget updated", 
         description: `Budget for ${values.category} has been updated.`,
-        variant: "default"
-      })
+      });
     } catch (error) {
-      console.error("Error updating budget:", error)
+      console.error("Error updating budget:", error);
       toast({ 
         variant: "destructive", 
         title: "Error", 
         description: "Failed to update budget. Please try again." 
-      })
+      });
     } finally {
       setIsSubmitting(false);
     }
   }
 
-  async function handleDeleteBudget(id: string) {
+  async function handleDeleteBudget() {
+    if (!selectedBudget) return;
+    
     setIsDeleting(true);
     try {
-      await deleteBudget(id);
+      await deleteBudget(selectedBudget.id);
+      setDeleteDialogOpen(false);
+      setSelectedBudget(null);
       await refetchBudgets();
       toast({ 
         title: "Budget deleted", 
         description: "Budget has been deleted successfully.",
-        variant: "default"
       });
     } catch (error) {
       console.error("Error deleting budget:", error);
@@ -193,37 +212,47 @@ export default function BudgetsPage() {
     }
   }
 
-  const budgetsWithSpent: BudgetWithSpent[] = budgets.map(budget => {
-    const spent = transactions
-      .filter(t => t.type === 'expense' && t.category.toLowerCase() === budget.category.toLowerCase())
-      .reduce((acc, t) => acc + t.amount, 0);
-    
-    const progress = (spent / budget.amount) * 100;
-    let status: "under" | "over" | "approaching" = "under";
-    
-    if (progress > 100) {
-      status = "over";
-    } else if (progress >= 80) {
-      status = "approaching";
-    }
-    
-    return { 
-      ...budget, 
-      spent,
-      progress,
-      status
-    };
-  });
+  const budgetsWithSpent: BudgetWithSpent[] = React.useMemo(() => {
+    return budgets.map(budget => {
+      const spent = transactions
+        .filter(t => t.type === 'expense' && t.category?.toLowerCase() === budget.category?.toLowerCase())
+        .reduce((acc, t) => acc + t.amount, 0);
+      
+      const progress = (spent / budget.amount) * 100;
+      let status: "under" | "over" | "approaching" = "under";
+      
+      if (progress > 100) {
+        status = "over";
+      } else if (progress >= 80) {
+        status = "approaching";
+      }
+      
+      return { 
+        ...budget, 
+        spent,
+        progress,
+        status
+      };
+    });
+  }, [budgets, transactions]);
 
-  const filteredBudgets = budgetsWithSpent.filter(budget => {
-    if (activeTab === "all") return true;
-    if (activeTab === "over") return budget.status === "over";
-    if (activeTab === "approaching") return budget.status === "approaching";
-    return budget.status === "under";
-  });
+  const filteredBudgets = React.useMemo(() => {
+    return budgetsWithSpent.filter(budget => {
+      if (activeTab === "all") return true;
+      if (activeTab === "over") return budget.status === "over";
+      if (activeTab === "approaching") return budget.status === "approaching";
+      return budget.status === "under";
+    });
+  }, [budgetsWithSpent, activeTab]);
 
-  const totalBudget = budgets.reduce((acc, budget) => acc + budget.amount, 0);
-  const totalSpent = budgetsWithSpent.reduce((acc, budget) => acc + budget.spent, 0);
+  const totalBudget = React.useMemo(() => {
+    return budgets.reduce((acc, budget) => acc + budget.amount, 0);
+  }, [budgets]);
+
+  const totalSpent = React.useMemo(() => {
+    return budgetsWithSpent.reduce((acc, budget) => acc + budget.spent, 0);
+  }, [budgetsWithSpent]);
+
   const overallProgress = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
 
   const getProgressColor = (progress: number) => {
@@ -243,8 +272,18 @@ export default function BudgetsPage() {
     }
   };
 
+  const handleEditClick = (budget: Budget) => {
+    setSelectedBudget(budget);
+    setEditDialogOpen(true);
+  };
+
+  const handleDeleteClick = (budget: Budget) => {
+    setSelectedBudget(budget);
+    setDeleteDialogOpen(true);
+  };
+
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 p-4 sm:p-6">
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div>
@@ -275,7 +314,7 @@ export default function BudgetsPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Category</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select a category" />
@@ -320,7 +359,7 @@ export default function BudgetsPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Budget Period</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select period" />
@@ -443,23 +482,17 @@ export default function BudgetsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem 
-                          onClick={() => {
-                            setSelectedBudget(budget);
-                            setEditDialogOpen(true);
-                          }}
-                        >
+                        <DropdownMenuItem onClick={() => handleEditClick(budget)}>
                           <Edit2 className="mr-2 h-4 w-4" />
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className="text-destructive"
-                          onClick={() => handleDeleteBudget(budget.id)}
-                          disabled={isDeleting}
+                          onClick={() => handleDeleteClick(budget)}
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
-                          {isDeleting ? "Deleting..." : "Delete"}
+                          Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -502,7 +535,6 @@ export default function BudgetsPage() {
                         budget.status === "over" && "text-destructive"
                       )}>
                         {formatCurrency(Math.max(0, budget.amount - budget.spent))}
-                        {budget.status === "over" && " (Over)"}
                       </p>
                     </div>
                     <div className="space-y-1 text-right">
@@ -546,14 +578,10 @@ export default function BudgetsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button size="lg" className="gap-2">
-                    <PlusCircle className="h-4 w-4" />
-                    Create Your First Budget
-                  </Button>
-                </DialogTrigger>
-              </Dialog>
+              <Button size="lg" className="gap-2" onClick={() => setAddDialogOpen(true)}>
+                <PlusCircle className="h-4 w-4" />
+                Create Your First Budget
+              </Button>
             </CardContent>
           </Card>
         )}
@@ -576,7 +604,7 @@ export default function BudgetsPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Category</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a category" />
@@ -621,7 +649,7 @@ export default function BudgetsPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Budget Period</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select period" />
@@ -646,10 +674,28 @@ export default function BudgetsPage() {
           </Form>
         </DialogContent>
       </Dialog>
-    </div>
-  )
-}
 
-function updateBudget(id: any, values: { category?: string; amount?: number; period?: "monthly" | "weekly" | "yearly" }) {
-  throw new Error("Function not implemented.")
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the budget for {selectedBudget?.category}. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteBudget}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
 }

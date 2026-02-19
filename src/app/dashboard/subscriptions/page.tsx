@@ -79,7 +79,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { addRecurringTransaction, getRecurringTransactions } from "@/services/recurring";
+import { addRecurringTransaction, deleteRecurringTransaction, updateRecurringTransaction } from "@/services/recurring";
 import type { SubscriptionInsight } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -839,8 +839,7 @@ export default function SubscriptionsPage() {
 
   const handleEdit = async (id: string, data: any) => {
     try {
-      // TODO: Implement updateRecurringTransaction in @/services/recurring
-      // await updateRecurringTransaction(id, data);
+      await updateRecurringTransaction(id, data);
       toast({ title: "Success", description: "Subscription updated successfully." });
     } catch (error) {
       console.error("Error updating subscription:", error);
