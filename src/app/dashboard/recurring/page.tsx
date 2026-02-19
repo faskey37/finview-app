@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { addRecurringTransaction,  getRecurringTransactions } from "@/services/recurring"
+import { addRecurringTransaction, getRecurringTransactions, } from "@/services/recurring"
 import { useToast } from "@/hooks/use-toast"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -213,10 +213,7 @@ export default function RecurringPage() {
     
     setIsSubmitting(true);
     try {
-      await addRecurringTransaction({
-        ...values,
-        id: selectedTransaction.id,
-      });
+      await updateRecurringTransaction(selectedTransaction.id, values);
       setEditDialogOpen(false);
       setSelectedTransaction(null);
       await refetch();
@@ -239,7 +236,7 @@ export default function RecurringPage() {
   async function handleDeleteRecurring(id: string) {
     setIsDeleting(true);
     try {
-      await getRecurringTransactions(id);
+      await deleteRecurringTransaction(id);
       await refetch();
       toast({ 
         title: "Transaction deleted", 
@@ -259,10 +256,7 @@ export default function RecurringPage() {
 
   async function handleToggleActive(id: string, isActive: boolean) {
     try {
-      await addRecurringTransaction({
-        id,
-        isActive: !isActive,
-      } as any);
+      await updateRecurringTransaction(id, { isActive: !isActive });
       await refetch();
       toast({ 
         title: isActive ? "Transaction paused" : "Transaction resumed",
