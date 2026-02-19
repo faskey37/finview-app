@@ -48,7 +48,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Budget } from "@/types/budget"
+import { Budget } from "@/services/budgets"
 
 const budgetSchema = z.object({
   category: z.string().min(1, "Category is required"),
