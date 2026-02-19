@@ -3,6 +3,10 @@
 import type { LucideIcon } from "lucide-react";
 
 export type Transaction = {
+  status: string;
+  createdAt: string | number | Date;
+  createdAt: any;
+  accountName: string;
   id: string;
   date: string;
   description: string;
@@ -90,6 +94,7 @@ export type Goal = {
 }
 
 export type RecurringTransaction = {
+    isActive: boolean;
     id: string;
     description: string;
     amount: number;

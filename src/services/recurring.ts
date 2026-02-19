@@ -9,7 +9,7 @@ const getRecurringCollection = () => {
     return collection(db, 'users', userId, 'recurring');
 }
 
-export const addRecurringTransaction = async (transaction: Omit<RecurringTransaction, 'id'>) => {
+export const addRecurringTransaction = async (id: string, p0: { isActive: boolean; }, transaction: Omit<RecurringTransaction, 'id'>) => {
   try {
      const recurringCollection = getRecurringCollection();
     // Check if a subscription with the same name already exists

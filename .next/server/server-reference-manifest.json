@@ -1,39 +1,5 @@
 {
-  "node": {
-    "0084a4adca01ff367f1760714df859f506be941d8c": {
-      "workers": {
-        "app/dashboard/news/page": {
-          "moduleId": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22E%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cservices%5C%5Cnews.ts%22%2C%5B%5B%220084a4adca01ff367f1760714df859f506be941d8c%22%2C%22getFinancialNews%22%5D%5D%5D%5D&__client_imported__=true!",
-          "async": false
-        }
-      },
-      "layer": {
-        "app/dashboard/news/page": "action-browser"
-      }
-    },
-    "40e975622dff90eb2e7840d520a9dea65234934a9a": {
-      "workers": {
-        "app/dashboard/score/page": {
-          "moduleId": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22E%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cgenerate-financial-health-score.ts%22%2C%5B%5B%2240e975622dff90eb2e7840d520a9dea65234934a9a%22%2C%22generateFinancialHealthScore%22%5D%5D%5D%5D&__client_imported__=true!",
-          "async": false
-        }
-      },
-      "layer": {
-        "app/dashboard/score/page": "action-browser"
-      }
-    },
-    "409480f8df461e2a0304eee5ba9594a74f4570d930": {
-      "workers": {
-        "app/dashboard/subscriptions/page": {
-          "moduleId": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22E%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cgenerate-subscription-insight.ts%22%2C%5B%5B%22409480f8df461e2a0304eee5ba9594a74f4570d930%22%2C%22generateSubscriptionInsights%22%5D%5D%5D%5D&__client_imported__=true!",
-          "async": false
-        }
-      },
-      "layer": {
-        "app/dashboard/subscriptions/page": "action-browser"
-      }
-    }
-  },
+  "node": {},
   "edge": {},
   "encryptionKey": "v30+PpT/3McH0vltICrs9Kd5c9mOHbXF2w6fzO4ouOA="
 }
