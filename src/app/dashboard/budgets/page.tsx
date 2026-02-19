@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { addBudget, deleteBudget,  } from "@/services/budgets"
+import { addBudget, deleteBudget, updateBudget } from "@/services/budgets"
 import { useToast } from "@/hooks/use-toast"
 import {
   AlertDialog,
@@ -48,7 +48,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Budget } from "@/services/budgets"
+import { Budget } from "@/types/budget"
 
 const budgetSchema = z.object({
   category: z.string().min(1, "Category is required"),

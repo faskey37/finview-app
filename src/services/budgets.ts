@@ -1,7 +1,7 @@
 
 import { db, auth } from '@/lib/firebase';
 import { collection, addDoc, onSnapshot, query, deleteDoc, doc, getDocs } from 'firebase/firestore';
-import type { export Budget } from '@/lib/types';
+import type { Budget } from '@/lib/types';
 
 const getBudgetsCollection = () => {
     const userId = auth.currentUser?.uid;
