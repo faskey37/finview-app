@@ -409,6 +409,60 @@ export function DashboardHeader() {
   const userInitial = (userData?.displayName?.[0] || user?.email?.[0] || 'U').toUpperCase();
   const userName = userData?.displayName || user?.email?.split('@')[0] || 'User';
 
+  // Get quick stats data for compact display
+  const { accounts } = useAccounts();
+  const { goals } = useGoals();
+  const { transactions } = useTransactions();
+  const { formatCurrency, currencySymbol } = useCurrency();
+
+  // Calculate quick stats for compact view
+  const totalBalance = accounts.reduce((acc, account) => {
+    if (account.type === 'Credit Card' || account.type === 'credit_card') {
+      return acc - account.balance;
+    }
+    return acc + account.balance;
+  }, 0);
+
+  const activeGoals = goals.filter(g => 
+    g.status === 'active' || g.status === 'in-progress'
+  ).length;
+
+  const activeAccounts = accounts.filter(a => 
+    a.status !== 'archived' && a.status !== 'closed'
+  ).length;
+
+  const thisMonthExpenses = transactions
+    .filter(t => {
+      const transactionDate = new Date(t.date);
+      const now = new Date();
+      return t.type === 'expense' && 
+             transactionDate.getMonth() === now.getMonth() &&
+             transactionDate.getFullYear() === now.getFullYear();
+    })
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const thisMonthIncome = transactions
+    .filter(t => {
+      const transactionDate = new Date(t.date);
+      const now = new Date();
+      return t.type === 'income' && 
+             transactionDate.getMonth() === now.getMonth() &&
+             transactionDate.getFullYear() === now.getFullYear();
+    })
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const savingsRate = thisMonthIncome > 0 
+    ? ((thisMonthIncome - thisMonthExpenses) / thisMonthIncome * 100).toFixed(1)
+    : "0.0";
+
+  const formatCompactCurrency = (amount: number) => {
+    const symbol = currencySymbol || '$';
+    if (amount >= 1000000000) return `${symbol}${(amount / 1000000000).toFixed(1)}B`;
+    if (amount >= 1000000) return `${symbol}${(amount / 1000000).toFixed(1)}M`;
+    if (amount >= 1000) return `${symbol}${(amount / 1000).toFixed(1)}K`;
+    return formatCurrency(amount);
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-gradient-to-b from-background/95 to-background/90 backdrop-blur supports-backdrop-blur:bg-background/60">
       {/* Premium Banner for non-pro users */}
@@ -720,7 +774,7 @@ export function DashboardHeader() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* User Menu */}
+          {/* User Menu - FIXED VERSION WITH SCROLL */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
@@ -745,83 +799,99 @@ export function DashboardHeader() {
             </DropdownMenuTrigger>
             <DropdownMenuContent 
               align="end" 
-              className="w-80 p-0 max-h-[calc(100vh-100px)] overflow-hidden"
+              className="w-72 p-0 max-h-[min(600px,calc(100vh-100px))]" 
               sideOffset={5}
-              collisionPadding={16}
             >
-              <ScrollArea className="h-[600px]">
-                {/* User Profile Section */}
-                <div className="p-6 bg-gradient-to-br from-background to-accent/5 border-b border-border/50">
+              <ScrollArea className="h-full max-h-[600px]">
+                {/* User Profile Section - Compact */}
+                <div className="p-4 bg-gradient-to-br from-background to-accent/5 border-b border-border/50">
                   <div className="flex items-center gap-3">
                     <div className="relative">
-                      <Avatar className="h-14 w-14 ring-2 ring-primary/20 ring-offset-2 ring-offset-background">
+                      <Avatar className="h-10 w-10 ring-2 ring-primary/20">
                         <AvatarImage src={userData?.photoURL || user?.photoURL || ""} />
-                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-primary text-lg font-semibold">
+                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-primary text-sm font-semibold">
                           {userInitial}
                         </AvatarFallback>
                       </Avatar>
                       {isPro && !authLoading && (
-                        <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-primary to-purple-600 rounded-full p-1">
-                          <Crown className="h-3 w-3 text-white" />
+                        <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-primary to-purple-600 rounded-full p-0.5">
+                          <Crown className="h-2.5 w-2.5 text-white" />
                         </div>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-lg truncate">{userName}</h3>
-                      <p className="text-sm text-muted-foreground truncate">{user?.email}</p>
-                      <div className="flex items-center gap-2 mt-2">
+                      <h3 className="font-semibold text-base truncate">{userName}</h3>
+                      <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                      <div className="flex items-center gap-2 mt-1">
                         <Badge 
                           variant="outline" 
                           className={cn(
-                            "text-xs font-medium",
+                            "text-[10px] px-1.5 py-0",
                             isPro && !authLoading
                               ? "bg-gradient-to-r from-primary/10 to-purple-600/10 text-primary border-primary/30" 
                               : "bg-accent/20 text-muted-foreground"
                           )}
                         >
-                          {isPro && !authLoading ? 'Pro Member' : 'Free Plan'}
+                          {isPro && !authLoading ? 'Pro' : 'Free'}
                         </Badge>
-                        <span className="text-xs text-muted-foreground/70">
-                          Joined {userData?.createdAt ? formatDistanceToNow(userData.createdAt, { addSuffix: true }) : 'recently'}
+                        <span className="text-[10px] text-muted-foreground/70">
+                          {userData?.createdAt ? formatDistanceToNow(userData.createdAt, { addSuffix: true }) : 'recently'}
                         </span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Quick Stats with real data - FIXED CURRENCY SYMBOL */}
-                <QuickStats />
+                {/* Quick Stats - Compact */}
+                <div className="p-3 border-b border-border/50">
+                  <div className="grid grid-cols-3 gap-1">
+                    {/* Balance */}
+                    <div className="flex flex-col items-center p-1.5 rounded-lg bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20">
+                      <p className="text-[10px] text-muted-foreground mb-1">Balance</p>
+                      <p className="font-bold text-primary text-xs truncate max-w-[60px]">
+                        {formatCompactCurrency(totalBalance)}
+                      </p>
+                    </div>
 
-                {/* Navigation Links */}
-                <div className="p-2">
+                    {/* Accounts */}
+                    <div className="flex flex-col items-center p-1.5 rounded-lg bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20">
+                      <p className="text-[10px] text-muted-foreground mb-1">Accounts</p>
+                      <p className="font-bold text-emerald-600 text-xs">
+                        {activeAccounts}
+                      </p>
+                    </div>
+
+                    {/* Goals */}
+                    <div className="flex flex-col items-center p-1.5 rounded-lg bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20">
+                      <p className="text-[10px] text-muted-foreground mb-1">Goals</p>
+                      <p className="font-bold text-purple-600 text-xs">
+                        {activeGoals}/{goals.length}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Navigation Links - Compact */}
+                <div className="p-1">
                   <DropdownMenuGroup>
                     <Link href="/dashboard/profile">
-                      <DropdownMenuItem className="cursor-pointer p-3 rounded-lg hover:bg-accent/30">
-                        <User className="h-4 w-4 mr-3 text-muted-foreground" />
-                        <div className="flex-1 min-w-0">
-                          <span className="block truncate">Profile</span>
-                          <p className="text-xs text-muted-foreground truncate">Manage your personal information</p>
-                        </div>
+                      <DropdownMenuItem className="cursor-pointer p-2 rounded-lg hover:bg-accent/30">
+                        <User className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                        <span className="text-sm">Profile</span>
                       </DropdownMenuItem>
                     </Link>
                     <Link href="/dashboard/settings">
-                      <DropdownMenuItem className="cursor-pointer p-3 rounded-lg hover:bg-accent/30">
-                        <Settings className="h-4 w-4 mr-3 text-muted-foreground" />
-                        <div className="flex-1 min-w-0">
-                          <span className="block truncate">Settings</span>
-                          <p className="text-xs text-muted-foreground truncate">Customize your preferences</p>
-                        </div>
+                      <DropdownMenuItem className="cursor-pointer p-2 rounded-lg hover:bg-accent/30">
+                        <Settings className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                        <span className="text-sm">Settings</span>
                       </DropdownMenuItem>
                     </Link>
                     <Link href="/dashboard/upgrade">
-                      <DropdownMenuItem className="cursor-pointer p-3 rounded-lg hover:bg-accent/30">
-                        <CreditCard className="h-4 w-4 mr-3 text-muted-foreground" />
-                        <div className="flex-1 min-w-0">
-                          <span className="block truncate">Billing & Plans</span>
-                          <p className="text-xs text-muted-foreground truncate">Manage subscription and billing</p>
-                        </div>
+                      <DropdownMenuItem className="cursor-pointer p-2 rounded-lg hover:bg-accent/30">
+                        <CreditCard className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                        <span className="text-sm flex-1">Billing</span>
                         {isPro && !authLoading && (
-                          <Badge variant="outline" className="text-xs bg-gradient-to-r from-primary/10 to-purple-600/10 text-primary border-primary/30 flex-shrink-0 ml-2">
+                          <Badge variant="outline" className="text-[10px] px-1 bg-gradient-to-r from-primary/10 to-purple-600/10 text-primary border-primary/30">
                             Pro
                           </Badge>
                         )}
@@ -829,110 +899,104 @@ export function DashboardHeader() {
                     </Link>
                   </DropdownMenuGroup>
 
-                  <DropdownMenuSeparator />
+                  <DropdownMenuSeparator className="my-1" />
 
                   {/* Theme Toggle */}
-                  <div className="p-3">
+                  <div className="p-2">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         {mounted && theme === 'dark' ? (
-                          <Moon className="h-4 w-4 text-muted-foreground" />
+                          <Moon className="h-3.5 w-3.5 text-muted-foreground" />
                         ) : (
-                          <Sun className="h-4 w-4 text-muted-foreground" />
+                          <Sun className="h-3.5 w-3.5 text-muted-foreground" />
                         )}
-                        <span className="text-sm">Dark Mode</span>
+                        <span className="text-xs">Dark Mode</span>
                       </div>
                       <Switch
                         checked={mounted && theme === 'dark'}
                         onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+                        className="scale-75"
                       />
                     </div>
                   </div>
 
-                  <DropdownMenuSeparator />
+                  <DropdownMenuSeparator className="my-1" />
 
-                  {/* Upgrade Section for Free Users */}
+                  {/* Upgrade Section for Free Users - Compact */}
                   {!isPro && !authLoading && (
                     <>
-                      <div className="p-3 m-2">
-                        <div className="p-4 bg-gradient-to-r from-primary/10 to-accent/10 rounded-lg border border-primary/20">
-                          <div className="flex items-start gap-3">
-                            <div className="p-2 rounded-lg bg-gradient-to-r from-primary to-purple-600 flex-shrink-0">
-                              <Crown className="h-5 w-5 text-white" />
+                      <div className="p-2">
+                        <div className="p-2 bg-gradient-to-r from-primary/10 to-accent/10 rounded-lg border border-primary/20">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1 rounded-lg bg-gradient-to-r from-primary to-purple-600">
+                              <Crown className="h-3 w-3 text-white" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <h4 className="font-semibold text-sm truncate">Upgrade to Pro</h4>
-                              <p className="text-xs text-muted-foreground mt-1 truncate">
-                                Unlock all features and priority support
-                              </p>
-                              <Button 
-                                size="sm" 
-                                className="mt-3 w-full bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90"
-                                asChild
-                              >
-                                <Link href="/dashboard/upgrade" className="flex items-center justify-center gap-2">
-                                  <Sparkles className="h-3 w-3" />
-                                  Upgrade Now
-                                </Link>
-                              </Button>
+                              <p className="text-xs font-semibold">Go Pro</p>
+                              <p className="text-[10px] text-muted-foreground">Unlock all features</p>
                             </div>
+                            <Button 
+                              size="sm" 
+                              className="h-6 px-2 text-[10px] bg-gradient-to-r from-primary to-purple-600"
+                              asChild
+                            >
+                              <Link href="/dashboard/upgrade">Upgrade</Link>
+                            </Button>
                           </div>
                         </div>
                       </div>
-                      <DropdownMenuSeparator />
+                      <DropdownMenuSeparator className="my-1" />
                     </>
                   )}
 
-                  {/* Additional Links */}
-                  <div className="p-2">
+                  {/* Additional Links - Compact */}
+                  <div className="p-1">
                     <Link href="/help">
-                      <DropdownMenuItem className="cursor-pointer p-3 rounded-lg hover:bg-accent/30">
-                        <HelpCircle className="h-4 w-4 mr-3 text-muted-foreground" />
-                        <span className="truncate">Help & Support</span>
+                      <DropdownMenuItem className="cursor-pointer p-2 rounded-lg hover:bg-accent/30">
+                        <HelpCircle className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                        <span className="text-xs">Help & Support</span>
                       </DropdownMenuItem>
                     </Link>
                     <Link href="/privacy">
-                      <DropdownMenuItem className="cursor-pointer p-3 rounded-lg hover:bg-accent/30">
-                        <Shield className="h-4 w-4 mr-3 text-muted-foreground" />
-                        <span className="truncate">Privacy & Security</span>
+                      <DropdownMenuItem className="cursor-pointer p-2 rounded-lg hover:bg-accent/30">
+                        <Shield className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                        <span className="text-xs">Privacy</span>
                       </DropdownMenuItem>
                     </Link>
                     <Link href="/feedback">
-                      <DropdownMenuItem className="cursor-pointer p-3 rounded-lg hover:bg-accent/30">
-                        <Gift className="h-4 w-4 mr-3 text-muted-foreground" />
-                        <span className="truncate">Send Feedback</span>
+                      <DropdownMenuItem className="cursor-pointer p-2 rounded-lg hover:bg-accent/30">
+                        <Gift className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                        <span className="text-xs">Feedback</span>
                       </DropdownMenuItem>
                     </Link>
                   </div>
 
-                  <DropdownMenuSeparator />
+                  <DropdownMenuSeparator className="my-1" />
 
                   {/* Sign Out */}
-                  <div className="p-2">
+                  <div className="p-1">
                     <DropdownMenuItem 
-                      className="cursor-pointer p-3 rounded-lg text-destructive hover:text-destructive hover:bg-destructive/10"
+                      className="cursor-pointer p-2 rounded-lg text-destructive hover:text-destructive hover:bg-destructive/10"
                       onClick={handleSignOut}
                     >
-                      <LogOut className="h-4 w-4 mr-3" />
-                      <span className="truncate">Sign Out</span>
+                      <LogOut className="h-3.5 w-3.5 mr-2" />
+                      <span className="text-xs">Sign Out</span>
                     </DropdownMenuItem>
                   </div>
                 </div>
 
-                {/* Footer */}
-                <div className="p-4 border-t border-border/50 bg-accent/5">
+                {/* Footer - Compact */}
+                <div className="p-2 border-t border-border/50 bg-accent/5">
                   <div className="flex items-center justify-between">
-                    <div className="text-xs text-muted-foreground truncate">
-                      v2.1.0 • Last login: Today
-                    </div>
+                    <span className="text-[10px] text-muted-foreground">v2.1.0</span>
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="h-6 text-xs text-muted-foreground hover:text-primary flex-shrink-0"
+                      className="h-5 text-[10px] text-muted-foreground hover:text-primary"
                       asChild
                     >
                       <Link href="/dashboard/settings/security">
-                        <Shield className="h-3 w-3 mr-1" />
+                        <Shield className="h-2.5 w-2.5 mr-1" />
                         Security
                       </Link>
                     </Button>
