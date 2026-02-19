@@ -774,237 +774,243 @@ export function DashboardHeader() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* User Menu - FIXED VERSION WITH SCROLL */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                className="relative h-10 w-10 rounded-full hover:bg-accent/30 transition-all duration-300 group"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <Avatar className="h-9 w-9 ring-1 ring-border group-hover:ring-primary/30 transition-all duration-300">
+          {/* User Menu - FIXED VERSION WITH ADAPTIVE HEIGHT */}
+          {/* User Menu - FIXED VERSION WITH PROPER SCROLLING */}
+<DropdownMenu>
+  <DropdownMenuTrigger asChild>
+    <Button 
+      variant="ghost" 
+      className="relative h-10 w-10 rounded-full hover:bg-accent/30 transition-all duration-300 group"
+    >
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      <Avatar className="h-9 w-9 ring-1 ring-border group-hover:ring-primary/30 transition-all duration-300">
+        <AvatarImage src={userData?.photoURL || user?.photoURL || ""} />
+        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-primary text-sm font-semibold">
+          {userInitial}
+        </AvatarFallback>
+      </Avatar>
+      {isPro && !authLoading && (
+        <div className="absolute -bottom-0.5 -right-0.5">
+          <div className="h-4 w-4 rounded-full bg-gradient-to-r from-primary to-purple-600 p-0.5">
+            <Crown className="h-full w-full text-white" />
+          </div>
+        </div>
+      )}
+    </Button>
+  </DropdownMenuTrigger>
+  <DropdownMenuContent 
+    align="end" 
+    className="w-72 p-0"
+    sideOffset={5}
+  >
+    {/* Fixed height container with proper scrolling */}
+    <div className="h-[calc(100vh-120px)] max-h-[600px] overflow-hidden">
+      <ScrollArea className="h-full">
+        <div className="flex flex-col">
+          {/* User Profile Section - Compact */}
+          <div className="p-4 bg-gradient-to-br from-background to-accent/5 border-b border-border/50">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Avatar className="h-10 w-10 ring-2 ring-primary/20">
                   <AvatarImage src={userData?.photoURL || user?.photoURL || ""} />
                   <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-primary text-sm font-semibold">
                     {userInitial}
                   </AvatarFallback>
                 </Avatar>
                 {isPro && !authLoading && (
-                  <div className="absolute -bottom-0.5 -right-0.5">
-                    <div className="h-4 w-4 rounded-full bg-gradient-to-r from-primary to-purple-600 p-0.5">
-                      <Crown className="h-full w-full text-white" />
-                    </div>
+                  <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-primary to-purple-600 rounded-full p-0.5">
+                    <Crown className="h-2.5 w-2.5 text-white" />
                   </div>
                 )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent 
-              align="end" 
-              className="w-72 p-0 max-h-[min(600px,calc(100vh-100px))]" 
-              sideOffset={5}
-            >
-              <ScrollArea className="h-full max-h-[600px]">
-                {/* User Profile Section - Compact */}
-                <div className="p-4 bg-gradient-to-br from-background to-accent/5 border-b border-border/50">
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <Avatar className="h-10 w-10 ring-2 ring-primary/20">
-                        <AvatarImage src={userData?.photoURL || user?.photoURL || ""} />
-                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-primary text-sm font-semibold">
-                          {userInitial}
-                        </AvatarFallback>
-                      </Avatar>
-                      {isPro && !authLoading && (
-                        <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-primary to-purple-600 rounded-full p-0.5">
-                          <Crown className="h-2.5 w-2.5 text-white" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-base truncate">{userName}</h3>
-                      <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge 
-                          variant="outline" 
-                          className={cn(
-                            "text-[10px] px-1.5 py-0",
-                            isPro && !authLoading
-                              ? "bg-gradient-to-r from-primary/10 to-purple-600/10 text-primary border-primary/30" 
-                              : "bg-accent/20 text-muted-foreground"
-                          )}
-                        >
-                          {isPro && !authLoading ? 'Pro' : 'Free'}
-                        </Badge>
-                        <span className="text-[10px] text-muted-foreground/70">
-                          {userData?.createdAt ? formatDistanceToNow(userData.createdAt, { addSuffix: true }) : 'recently'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-base truncate">{userName}</h3>
+                <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge 
+                    variant="outline" 
+                    className={cn(
+                      "text-[10px] px-1.5 py-0",
+                      isPro && !authLoading
+                        ? "bg-gradient-to-r from-primary/10 to-purple-600/10 text-primary border-primary/30" 
+                        : "bg-accent/20 text-muted-foreground"
+                    )}
+                  >
+                    {isPro && !authLoading ? 'Pro' : 'Free'}
+                  </Badge>
+                  <span className="text-[10px] text-muted-foreground/70">
+                    {userData?.createdAt ? formatDistanceToNow(userData.createdAt, { addSuffix: true }) : 'recently'}
+                  </span>
                 </div>
+              </div>
+            </div>
+          </div>
 
-                {/* Quick Stats - Compact */}
-                <div className="p-3 border-b border-border/50">
-                  <div className="grid grid-cols-3 gap-1">
-                    {/* Balance */}
-                    <div className="flex flex-col items-center p-1.5 rounded-lg bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20">
-                      <p className="text-[10px] text-muted-foreground mb-1">Balance</p>
-                      <p className="font-bold text-primary text-xs truncate max-w-[60px]">
-                        {formatCompactCurrency(totalBalance)}
-                      </p>
-                    </div>
+          {/* Quick Stats - Compact */}
+          <div className="p-3 border-b border-border/50">
+            <div className="grid grid-cols-3 gap-1">
+              {/* Balance */}
+              <div className="flex flex-col items-center p-1.5 rounded-lg bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20">
+                <p className="text-[10px] text-muted-foreground mb-1">Balance</p>
+                <p className="font-bold text-primary text-xs truncate max-w-[60px]">
+                  {formatCompactCurrency(totalBalance)}
+                </p>
+              </div>
 
-                    {/* Accounts */}
-                    <div className="flex flex-col items-center p-1.5 rounded-lg bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20">
-                      <p className="text-[10px] text-muted-foreground mb-1">Accounts</p>
-                      <p className="font-bold text-emerald-600 text-xs">
-                        {activeAccounts}
-                      </p>
-                    </div>
+              {/* Accounts */}
+              <div className="flex flex-col items-center p-1.5 rounded-lg bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20">
+                <p className="text-[10px] text-muted-foreground mb-1">Accounts</p>
+                <p className="font-bold text-emerald-600 text-xs">
+                  {activeAccounts}
+                </p>
+              </div>
 
-                    {/* Goals */}
-                    <div className="flex flex-col items-center p-1.5 rounded-lg bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20">
-                      <p className="text-[10px] text-muted-foreground mb-1">Goals</p>
-                      <p className="font-bold text-purple-600 text-xs">
-                        {activeGoals}/{goals.length}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+              {/* Goals */}
+              <div className="flex flex-col items-center p-1.5 rounded-lg bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20">
+                <p className="text-[10px] text-muted-foreground mb-1">Goals</p>
+                <p className="font-bold text-purple-600 text-xs">
+                  {activeGoals}/{goals.length}
+                </p>
+              </div>
+            </div>
+          </div>
 
-                {/* Navigation Links - Compact */}
-                <div className="p-1">
-                  <DropdownMenuGroup>
-                    <Link href="/dashboard/profile">
-                      <DropdownMenuItem className="cursor-pointer p-2 rounded-lg hover:bg-accent/30">
-                        <User className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                        <span className="text-sm">Profile</span>
-                      </DropdownMenuItem>
-                    </Link>
-                    <Link href="/dashboard/settings">
-                      <DropdownMenuItem className="cursor-pointer p-2 rounded-lg hover:bg-accent/30">
-                        <Settings className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                        <span className="text-sm">Settings</span>
-                      </DropdownMenuItem>
-                    </Link>
-                    <Link href="/dashboard/upgrade">
-                      <DropdownMenuItem className="cursor-pointer p-2 rounded-lg hover:bg-accent/30">
-                        <CreditCard className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                        <span className="text-sm flex-1">Billing</span>
-                        {isPro && !authLoading && (
-                          <Badge variant="outline" className="text-[10px] px-1 bg-gradient-to-r from-primary/10 to-purple-600/10 text-primary border-primary/30">
-                            Pro
-                          </Badge>
-                        )}
-                      </DropdownMenuItem>
-                    </Link>
-                  </DropdownMenuGroup>
-
-                  <DropdownMenuSeparator className="my-1" />
-
-                  {/* Theme Toggle */}
-                  <div className="p-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {mounted && theme === 'dark' ? (
-                          <Moon className="h-3.5 w-3.5 text-muted-foreground" />
-                        ) : (
-                          <Sun className="h-3.5 w-3.5 text-muted-foreground" />
-                        )}
-                        <span className="text-xs">Dark Mode</span>
-                      </div>
-                      <Switch
-                        checked={mounted && theme === 'dark'}
-                        onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
-                        className="scale-75"
-                      />
-                    </div>
-                  </div>
-
-                  <DropdownMenuSeparator className="my-1" />
-
-                  {/* Upgrade Section for Free Users - Compact */}
-                  {!isPro && !authLoading && (
-                    <>
-                      <div className="p-2">
-                        <div className="p-2 bg-gradient-to-r from-primary/10 to-accent/10 rounded-lg border border-primary/20">
-                          <div className="flex items-center gap-2">
-                            <div className="p-1 rounded-lg bg-gradient-to-r from-primary to-purple-600">
-                              <Crown className="h-3 w-3 text-white" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-semibold">Go Pro</p>
-                              <p className="text-[10px] text-muted-foreground">Unlock all features</p>
-                            </div>
-                            <Button 
-                              size="sm" 
-                              className="h-6 px-2 text-[10px] bg-gradient-to-r from-primary to-purple-600"
-                              asChild
-                            >
-                              <Link href="/dashboard/upgrade">Upgrade</Link>
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                      <DropdownMenuSeparator className="my-1" />
-                    </>
+          {/* Navigation Links - Compact */}
+          <div className="p-1">
+            <DropdownMenuGroup>
+              <Link href="/dashboard/profile">
+                <DropdownMenuItem className="cursor-pointer p-2 rounded-lg hover:bg-accent/30">
+                  <User className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                  <span className="text-sm">Profile</span>
+                </DropdownMenuItem>
+              </Link>
+              <Link href="/dashboard/settings">
+                <DropdownMenuItem className="cursor-pointer p-2 rounded-lg hover:bg-accent/30">
+                  <Settings className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                  <span className="text-sm">Settings</span>
+                </DropdownMenuItem>
+              </Link>
+              <Link href="/dashboard/upgrade">
+                <DropdownMenuItem className="cursor-pointer p-2 rounded-lg hover:bg-accent/30">
+                  <CreditCard className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                  <span className="text-sm flex-1">Billing</span>
+                  {isPro && !authLoading && (
+                    <Badge variant="outline" className="text-[10px] px-1 bg-gradient-to-r from-primary/10 to-purple-600/10 text-primary border-primary/30">
+                      Pro
+                    </Badge>
                   )}
+                </DropdownMenuItem>
+              </Link>
+            </DropdownMenuGroup>
 
-                  {/* Additional Links - Compact */}
-                  <div className="p-1">
-                    <Link href="/help">
-                      <DropdownMenuItem className="cursor-pointer p-2 rounded-lg hover:bg-accent/30">
-                        <HelpCircle className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                        <span className="text-xs">Help & Support</span>
-                      </DropdownMenuItem>
-                    </Link>
-                    <Link href="/privacy">
-                      <DropdownMenuItem className="cursor-pointer p-2 rounded-lg hover:bg-accent/30">
-                        <Shield className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                        <span className="text-xs">Privacy</span>
-                      </DropdownMenuItem>
-                    </Link>
-                    <Link href="/feedback">
-                      <DropdownMenuItem className="cursor-pointer p-2 rounded-lg hover:bg-accent/30">
-                        <Gift className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                        <span className="text-xs">Feedback</span>
-                      </DropdownMenuItem>
-                    </Link>
-                  </div>
+            <DropdownMenuSeparator className="my-1" />
 
-                  <DropdownMenuSeparator className="my-1" />
+            {/* Theme Toggle */}
+            <div className="p-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {mounted && theme === 'dark' ? (
+                    <Moon className="h-3.5 w-3.5 text-muted-foreground" />
+                  ) : (
+                    <Sun className="h-3.5 w-3.5 text-muted-foreground" />
+                  )}
+                  <span className="text-xs">Dark Mode</span>
+                </div>
+                <Switch
+                  checked={mounted && theme === 'dark'}
+                  onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+                  className="scale-75"
+                />
+              </div>
+            </div>
 
-                  {/* Sign Out */}
-                  <div className="p-1">
-                    <DropdownMenuItem 
-                      className="cursor-pointer p-2 rounded-lg text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={handleSignOut}
-                    >
-                      <LogOut className="h-3.5 w-3.5 mr-2" />
-                      <span className="text-xs">Sign Out</span>
-                    </DropdownMenuItem>
+            <DropdownMenuSeparator className="my-1" />
+
+            {/* Upgrade Section for Free Users - Compact */}
+            {!isPro && !authLoading && (
+              <>
+                <div className="p-2">
+                  <div className="p-2 bg-gradient-to-r from-primary/10 to-accent/10 rounded-lg border border-primary/20">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1 rounded-lg bg-gradient-to-r from-primary to-purple-600">
+                        <Crown className="h-3 w-3 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold">Go Pro</p>
+                        <p className="text-[10px] text-muted-foreground">Unlock all features</p>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        className="h-6 px-2 text-[10px] bg-gradient-to-r from-primary to-purple-600"
+                        asChild
+                      >
+                        <Link href="/dashboard/upgrade">Upgrade</Link>
+                      </Button>
+                    </div>
                   </div>
                 </div>
+                <DropdownMenuSeparator className="my-1" />
+              </>
+            )}
 
-                {/* Footer - Compact */}
-                <div className="p-2 border-t border-border/50 bg-accent/5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-muted-foreground">v2.1.0</span>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-5 text-[10px] text-muted-foreground hover:text-primary"
-                      asChild
-                    >
-                      <Link href="/dashboard/settings/security">
-                        <Shield className="h-2.5 w-2.5 mr-1" />
-                        Security
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              </ScrollArea>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            {/* Additional Links - Compact */}
+            <div className="p-1">
+              <Link href="/help">
+                <DropdownMenuItem className="cursor-pointer p-2 rounded-lg hover:bg-accent/30">
+                  <HelpCircle className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                  <span className="text-xs">Help & Support</span>
+                </DropdownMenuItem>
+              </Link>
+              <Link href="/privacy">
+                <DropdownMenuItem className="cursor-pointer p-2 rounded-lg hover:bg-accent/30">
+                  <Shield className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                  <span className="text-xs">Privacy</span>
+                </DropdownMenuItem>
+              </Link>
+              <Link href="/feedback">
+                <DropdownMenuItem className="cursor-pointer p-2 rounded-lg hover:bg-accent/30">
+                  <Gift className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                  <span className="text-xs">Feedback</span>
+                </DropdownMenuItem>
+              </Link>
+            </div>
+
+            <DropdownMenuSeparator className="my-1" />
+
+            {/* Sign Out */}
+            <div className="p-1 pb-2">
+              <DropdownMenuItem 
+                className="cursor-pointer p-2 rounded-lg text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={handleSignOut}
+              >
+                <LogOut className="h-3.5 w-3.5 mr-2" />
+                <span className="text-xs">Sign Out</span>
+              </DropdownMenuItem>
+            </div>
+
+            {/* Footer - Compact */}
+            <div className="p-2 border-t border-border/60 bg-accent/5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground">v2.1.0</span>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-5 text-[10px] text-muted-foreground hover:text-primary"
+                  asChild
+                >
+                  <Link href="/dashboard/settings/security">
+                    <Shield className="h-2.5 w-2.5 mr-1" />
+                    Security
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ScrollArea>
+    </div>
+  </DropdownMenuContent>
+</DropdownMenu>
         </div>
       </div>
     </header>
