@@ -117,6 +117,8 @@ export type Footprint = {
 }
 
 export type Subscription = {
+    nextBillingDate: string;
+    nextBillingDate: string;
     id: string;
     name: string;
     monthlyCost: number;
