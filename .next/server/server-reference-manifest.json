@@ -1,14 +1,25 @@
 {
   "node": {
-    "409480f8df461e2a0304eee5ba9594a74f4570d930": {
+    "40bdb8fc4b3cef7128ff804a821ac81b1343c1f5ff": {
       "workers": {
-        "app/dashboard/subscriptions/page": {
-          "moduleId": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22E%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cgenerate-subscription-insight.ts%22%2C%5B%5B%22409480f8df461e2a0304eee5ba9594a74f4570d930%22%2C%22generateSubscriptionInsights%22%5D%5D%5D%5D&__client_imported__=true!",
+        "app/dashboard/profile/page": {
+          "moduleId": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22E%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Csend-email.ts%22%2C%5B%5B%2240bdb8fc4b3cef7128ff804a821ac81b1343c1f5ff%22%2C%22sendEmail%22%5D%5D%5D%2C%5B%22E%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cgenerate-monthly-summary.ts%22%2C%5B%5B%224083681ce43f220e1143732e0146a245d2de03c4c1%22%2C%22generateMonthlySummary%22%5D%5D%5D%5D&__client_imported__=true!",
           "async": false
         }
       },
       "layer": {
-        "app/dashboard/subscriptions/page": "action-browser"
+        "app/dashboard/profile/page": "action-browser"
+      }
+    },
+    "4083681ce43f220e1143732e0146a245d2de03c4c1": {
+      "workers": {
+        "app/dashboard/profile/page": {
+          "moduleId": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22E%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Csend-email.ts%22%2C%5B%5B%2240bdb8fc4b3cef7128ff804a821ac81b1343c1f5ff%22%2C%22sendEmail%22%5D%5D%5D%2C%5B%22E%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cgenerate-monthly-summary.ts%22%2C%5B%5B%224083681ce43f220e1143732e0146a245d2de03c4c1%22%2C%22generateMonthlySummary%22%5D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/profile/page": "action-browser"
       }
     }
   },

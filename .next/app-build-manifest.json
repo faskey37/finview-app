@@ -11,20 +11,50 @@
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/layout.js"
     ],
-    "/dashboard/subscriptions/page": [
+    "/dashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/subscriptions/page.js"
+      "static/chunks/app/dashboard/page.js"
     ],
-    "/dashboard/net-worth/page": [
+    "/login/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/net-worth/page.js"
+      "static/chunks/app/login/page.js"
     ],
-    "/_not-found/page": [
+    "/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/_not-found/page.js"
+      "static/chunks/app/page.js"
+    ],
+    "/signup/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/signup/page.js"
+    ],
+    "/verify-email/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/verify-email/page.js"
+    ],
+    "/dashboard/profile/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/profile/page.js"
+    ],
+    "/api/send-otp/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/send-otp/route.js"
+    ],
+    "/api/verify-otp/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/verify-otp/route.js"
+    ],
+    "/dashboard/accounts/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/accounts/page.js"
     ]
   }
 }

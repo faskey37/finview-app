@@ -1,12 +1,20 @@
-
 'use client';
 
 import { useState } from 'react';
 import { signUp, signInWithGoogle } from '@/lib/auth-utils';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowRight, Lock, Mail, User, Shield, TrendingUp } from 'lucide-react';
+import { ArrowRight, Lock, Mail, User, Shield, TrendingUp, AlertCircle } from 'lucide-react';
 import Logo from '@/components/logo';
+import { useToast } from '@/hooks/use-toast';
+
+// List of disposable email domains (you can expand this)
+const DISPOSABLE_DOMAINS = [
+  'tempmail.com', 'throwaway.com', 'mailinator.com', 'guerrillamail.com',
+  '10minutemail.com', 'yopmail.com', 'temp-mail.org', 'fakeinbox.com',
+  'maildrop.cc', 'getairmail.com', 'dispostable.com', 'mailnesia.com',
+  'trashmail.com', 'spamgourmet.com', 'spambox.us', 'tempr.email'
+];
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -15,28 +23,96 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
+  const { toast } = useToast();
+
+  // Email validation function
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return { valid: false, message: 'Please enter a valid email address' };
+    }
+
+    const domain = email.split('@')[1].toLowerCase();
+    if (DISPOSABLE_DOMAINS.includes(domain)) {
+      return { valid: false, message: 'Please use a permanent email address (temporary emails are not allowed)' };
+    }
+
+    return { valid: true };
+  };
+
+  // Password strength indicator
+  const getPasswordStrength = (pass: string) => {
+    if (!pass) return null;
+    if (pass.length < 6) return { text: 'Too short', color: 'text-destructive' };
+    if (pass.length < 8) return { text: 'Weak', color: 'text-destructive' };
+    if (pass.length < 10) return { text: 'Medium', color: 'text-yellow-500' };
+    return { text: 'Strong', color: 'text-green-500' };
+  };
+
+  const passwordStrength = getPasswordStrength(password);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
+    // Validate email first
+    const validation = validateEmail(email);
+    if (!validation.valid) {
+      setError(validation.message);
+      setLoading(false);
+      return;
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      setLoading(false);
+      return;
+    }
+
+    // Validate display name
+    if (displayName.trim().length < 2) {
+      setError('Please enter your full name');
+      setLoading(false);
+      return;
+    }
+
     try {
-      await signUp(email, password, displayName);
-      router.push('/dashboard');
+      const result = await signUp(email, password, displayName);
+      
+      if (result.success) {
+        toast({
+          title: 'Account created!',
+          description: 'Please check your email to verify your account.',
+        });
+        // Redirect to verification page
+        router.push('/verify-email');
+      } else {
+        setError(result.message);
+      }
     } catch (error: any) {
-      setError(error.message);
+      setError(error.message || 'Failed to create account. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
+    setLoading(true);
+    setError('');
+    
     try {
-      await signInWithGoogle();
-      router.push('/dashboard');
+      const result = await signInWithGoogle();
+      if (result.success) {
+        router.push('/dashboard');
+      } else {
+        setError(result.message);
+      }
     } catch (error: any) {
-      setError(error.message);
+      setError(error.message || 'Failed to sign in with Google');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -46,7 +122,7 @@ export default function SignupPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-              <Logo />
+            <Logo />
           </div>
           <h2 className="text-3xl font-bold text-foreground mb-2">Create Your Account</h2>
           <p className="text-muted-foreground">Start managing your finances today</p>
@@ -55,9 +131,9 @@ export default function SignupPage() {
         {/* Signup Card */}
         <div className="bg-card rounded-2xl shadow-xl border p-6">
           {error && (
-            <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-xl text-sm mb-4 flex items-center gap-2">
-              <div className="w-2 h-2 bg-destructive rounded-full"></div>
-              {error}
+            <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-xl text-sm mb-4 flex items-start gap-2">
+              <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+              <span>{error}</span>
             </div>
           )}
 
@@ -123,6 +199,11 @@ export default function SignupPage() {
                 />
                 <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               </div>
+              {passwordStrength && (
+                <p className={`text-xs mt-1 ${passwordStrength.color}`}>
+                  Password strength: {passwordStrength.text}
+                </p>
+              )}
             </div>
             
             <button

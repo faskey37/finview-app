@@ -11,7 +11,7 @@ export default function Logo({ className, isCollapsed = false }: LogoProps) {
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <Image
-        src="https://raw.githubusercontent.com/faskey37/My-Portfolio/main/logo.png"
+        src="https://raw.githubusercontent.com/faskey37/My-Portfolio/main/icon.png"
         alt="EcoVest Logo"
         width={36}
         height={36}

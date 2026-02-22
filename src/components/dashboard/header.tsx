@@ -352,8 +352,7 @@ function QuickStats() {
             <p className="text-xs text-muted-foreground mb-1 truncate w-full text-center px-1">Earned</p>
             <p className="font-semibold text-green-600 text-sm truncate w-full text-center px-1">
               {formatCurrency(thisMonthIncome)}
-            </p>
-          </div>
+            </p>3          </div>
 
           {/* Savings Rate */}
           <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-gradient-to-br from-rose-500/10 to-pink-500/10 border border-rose-500/20 min-w-0">
