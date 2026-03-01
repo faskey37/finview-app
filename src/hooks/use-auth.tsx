@@ -101,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                             photoURL: user.photoURL || '',
                             createdAt: new Date().toISOString(),
                             currency: "USD",
-                            isPro: false, 
+                            isPro: false,
                             roundUpForClimate: false,
                             ecoPoints: 0,
                             completedChallenges: {},
@@ -113,7 +113,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                                     lowBalance: true,
                                     goalMilestones: true,
                                 }
-                            }
+                            },
+                            accounts: undefined
                         };
                         await setDoc(userDocRef, newUser);
                         setUserData(newUser);

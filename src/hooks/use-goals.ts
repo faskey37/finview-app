@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getGoals, getGoals as getGoalsFromSvc } from '@/services/goals';
 import type { Goal } from '@/lib/types';
-import { useAuth } from './use-auth.tsx';
+import { useAuth } from './use-auth';
 
 export function useGoals() {
   const [goals, setGoals] = useState<Goal[]>([]);

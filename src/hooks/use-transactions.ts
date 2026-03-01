@@ -18,11 +18,17 @@ export function useTransactions() {
       if (user) {
         setLoading(true);
         try {
-          unsubscribeSnap = getTransactions((newTransactions) => {
-            setTransactions(newTransactions);
-            setLoading(false);
-            setError(null);
-          });
+          unsubscribeSnap = getTransactions(
+            (newTransactions) => {
+              setTransactions(newTransactions);
+              setLoading(false);
+              setError(null);
+            },
+            (error: Error) => {
+              setError(error);
+              setLoading(false);
+            }
+          );
         } catch (e) {
           setError(e as Error);
           setLoading(false);

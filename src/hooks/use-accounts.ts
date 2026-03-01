@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getAccounts, getAccounts as getAccountsFromSvc } from '@/services/accounts';
 import type { Account } from '@/lib/types';
-import { useAuth } from './use-auth.tsx';
+import { useAuth } from './use-auth';
 
 export function useAccounts() {
   const [accounts, setAccounts] = useState<Account[]>([]);
