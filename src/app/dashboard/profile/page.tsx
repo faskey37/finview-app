@@ -11,7 +11,11 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Sparkles, Edit, CalendarIcon, BadgeCheck, Trash2, Mail, Send, Phone, Loader2, Sprout, User, Shield, Bell, CreditCard } from "lucide-react";
+import { 
+  Sparkles, Edit, CalendarIcon, BadgeCheck, Trash2, Mail, Send, Phone, Loader2, 
+  Sprout, User, Shield, Bell, CreditCard, Download, Upload, FileText, 
+  AlertCircle, CheckCircle, Database, RefreshCw, Archive
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -42,6 +46,13 @@ import { useBudgets } from "@/hooks/use-budgets";
 import { useGoals } from "@/hooks/use-goals";
 import { ConfirmationResult } from "firebase/auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import JSZip from 'jszip';
+
+// Import/Export Service
+import { exportUserData, importUserData } from "@/services/data-export";
+import type { ExportProgress, ExportResult, ImportResult } from "@/services/data-export";
 
 const profileSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -81,6 +92,24 @@ export default function ProfilePage() {
   const [accountAge, setAccountAge] = React.useState('');
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [confirmationResult, setConfirmationResult] = React.useState<ConfirmationResult | null>(null);
+  
+  // Export/Import states
+  const [exportDialogOpen, setExportDialogOpen] = React.useState(false);
+  const [importDialogOpen, setImportDialogOpen] = React.useState(false);
+  const [isExporting, setIsExporting] = React.useState(false);
+  const [isImporting, setIsImporting] = React.useState(false);
+  const [exportProgress, setExportProgress] = React.useState<ExportProgress>({
+    stage: 'idle',
+    progress: 0,
+    total: 0,
+    currentItem: ''
+  });
+  const [importFile, setImportFile] = React.useState<File | null>(null);
+  const [importResult, setImportResult] = React.useState<{
+    success?: boolean;
+    message?: string;
+    stats?: any;
+  } | null>(null);
 
   const { transactions } = useTransactions();
   const { budgets } = useBudgets();
@@ -123,7 +152,7 @@ export default function ProfilePage() {
      if (user) {
         phoneForm.reset({ phoneNumber: user.phoneNumber || "" });
         if (user.metadata.creationTime) {
-            setAccountAge(formatDistanceToNow(new Date(user.metadata.creationTime)));
+            setAccountAge(formatDistanceToNow(new Date(user.metadata.creationTime), { addSuffix: true }));
         }
     }
   }, [user, userData, profileForm, emailForm, photoForm, phoneForm]);
@@ -272,6 +301,180 @@ export default function ProfilePage() {
     }
   }
 
+  // Debug function to analyze import file
+  // Replace your existing debugImportFile function with this:
+
+const debugImportFile = async (file: File) => {
+  try {
+    console.log('🔍 Analyzing import file:', file.name, 'size:', file.size);
+    
+    // Read the file as array buffer
+    const arrayBuffer = await file.arrayBuffer();
+    console.log('📦 File read as array buffer, size:', arrayBuffer.byteLength);
+    
+    // Load ZIP
+    const zip = await JSZip.loadAsync(arrayBuffer);
+    console.log('📂 ZIP loaded, files:', Object.keys(zip.files));
+    
+    // Check for export.json first
+    const exportFile = zip.file('export.json');
+    if (exportFile) {
+      const content = await exportFile.async('string');
+      const data = JSON.parse(content);
+      console.log('📊 Export data found:', {
+        accounts: data.accounts?.length || 0,
+        transactions: data.transactions?.length || 0,
+        budgets: data.budgets?.length || 0,
+        goals: data.goals?.length || 0,
+        investments: data.investments?.length || 0,
+        recurring: data.recurringTransactions?.length || 0
+      });
+      
+      const total = (data.accounts?.length || 0) + 
+                    (data.transactions?.length || 0) + 
+                    (data.budgets?.length || 0) + 
+                    (data.goals?.length || 0) + 
+                    (data.investments?.length || 0) + 
+                    (data.recurringTransactions?.length || 0);
+      
+      toast({
+        title: "Backup File Analysis",
+        description: `Found ${total} items to import.`,
+      });
+    } else {
+      // Check individual files
+      let totalItems = 0;
+      const fileTypes = ['accounts.json', 'transactions.json', 'budgets.json', 'goals.json', 'investments.json', 'recurring.json'];
+      
+      for (const fileName of fileTypes) {
+        const file = zip.file(fileName);
+        if (file) {
+          const content = await file.async('string');
+          const data = JSON.parse(content);
+          totalItems += data.length || 0;
+          console.log(`📁 ${fileName}:`, data.length || 0, 'items');
+        }
+      }
+      
+      toast({
+        title: "Backup File Analysis",
+        description: `Found approximately ${totalItems} items to import.`,
+      });
+    }
+  } catch (error) {
+    console.error('❌ Error analyzing import file:', error);
+    toast({
+      variant: "destructive",
+      title: "File Analysis Failed",
+      description: error instanceof Error ? error.message : "Could not read the backup file",
+    });
+  }
+};
+
+  // Handle file selection
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    setImportFile(file || null);
+    setImportResult(null); // Clear previous results
+    if (file) {
+      debugImportFile(file);
+    }
+  };
+
+  // Export handlers
+ // Export handlers
+const handleExport = async () => {
+  setIsExporting(true);
+  setExportProgress({ stage: 'preparing', progress: 0, total: 0, currentItem: '' });
+  
+  try {
+    console.log('Starting export...');
+    
+    // Update progress callback
+    const onProgress = (progress: ExportProgress) => {
+      console.log('Export progress:', progress);
+      setExportProgress(progress);
+    };
+
+    console.log('Calling exportUserData...');
+    const result = await exportUserData(onProgress);
+    console.log('Export result received:', result);
+
+    if (!result || !result.blob) {
+      throw new Error('No data received from export');
+    }
+
+    // Create download link
+    const url = window.URL.createObjectURL(result.blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = result.filename;
+    document.body.appendChild(a); // Append to body
+    a.click();
+    document.body.removeChild(a); // Remove after clicking
+    window.URL.revokeObjectURL(url); // Clean up
+    
+    toast({
+      title: "Export Complete",
+      description: `Successfully exported ${result.stats?.totalItems || 0} items.`,
+    });
+    
+    setExportDialogOpen(false);
+  } catch (error: any) {
+    console.error('Export error details:', error);
+    toast({
+      variant: "destructive",
+      title: "Export Failed",
+      description: error.message || "Failed to export data. Check console for details.",
+    });
+  } finally {
+    setIsExporting(false);
+    setExportProgress({ stage: 'idle', progress: 0, total: 0, currentItem: '' });
+  }
+};
+  const handleImport = async () => {
+    if (!importFile) return;
+    
+    setIsImporting(true);
+    setImportResult(null);
+    
+    try {
+      const result = await importUserData(importFile);
+      
+      if (result.success) {
+        setImportResult({
+          success: true,
+          message: result.message,
+          stats: result.stats
+        });
+        
+        toast({
+          title: "Import Successful",
+          description: result.message,
+        });
+        
+        // Close dialog after 3 seconds on success
+        setTimeout(() => {
+          setImportDialogOpen(false);
+          setImportFile(null);
+          setImportResult(null);
+        }, 3000);
+      } else {
+        setImportResult({
+          success: false,
+          message: result.message,
+          stats: result.stats
+        });
+      }
+    } catch (error: any) {
+      setImportResult({
+        success: false,
+        message: error.message || "Failed to import data"
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -298,7 +501,7 @@ export default function ProfilePage() {
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             Profile
@@ -311,9 +514,13 @@ export default function ProfilePage() {
             <Bell className="h-4 w-4" />
             Notifications
           </TabsTrigger>
+          <TabsTrigger value="data" className="flex items-center gap-2">
+            <Database className="h-4 w-4" />
+            Data
+          </TabsTrigger>
         </TabsList>
 
-        {/* Profile Tab */}
+        {/* Profile Tab - Existing */}
         <TabsContent value="profile" className="space-y-6">
           <Card>
             <CardHeader>
@@ -423,7 +630,7 @@ export default function ProfilePage() {
           </Card>
         </TabsContent>
 
-        {/* Security Tab */}
+        {/* Security Tab - Existing */}
         <TabsContent value="security" className="space-y-6">
           <Card>
             <CardHeader>
@@ -561,7 +768,7 @@ export default function ProfilePage() {
                     <CreditCard className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <p className="font-medium">Password</p>
-                      <p className="text-sm text-muted-foreground">Last updated {accountAge} ago</p>
+                      <p className="text-sm text-muted-foreground">Last updated {accountAge}</p>
                     </div>
                   </div>
                   <Button onClick={handlePasswordReset} disabled={isSendingReset} variant="outline" size="sm">
@@ -611,7 +818,7 @@ export default function ProfilePage() {
                       </div>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction type="submit" disabled={isDeleting} variant="destructive">
+                        <AlertDialogAction type="submit" disabled={isDeleting}>
                           {isDeleting ? "Deleting..." : "Delete Account"}
                         </AlertDialogAction>
                       </AlertDialogFooter>
@@ -623,7 +830,7 @@ export default function ProfilePage() {
           </Card>
         </TabsContent>
 
-        {/* Notifications Tab */}
+        {/* Notifications Tab - Existing */}
         <TabsContent value="notifications" className="space-y-6">
           <Card>
             <CardHeader>
@@ -664,6 +871,325 @@ export default function ProfilePage() {
                   <Send className="h-4 w-4 mr-2" />
                   {isSendingSummary ? "Sending..." : "Send Summary"}
                 </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Data Tab - Export/Import with Enhanced Display */}
+        <TabsContent value="data" className="space-y-6">
+          {/* Export Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Download className="h-5 w-5 text-primary" />
+                Export Your Data
+              </CardTitle>
+              <CardDescription>
+                Download a complete backup of all your financial data. This includes transactions, accounts, budgets, goals, and settings.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <Archive className="h-5 w-5 text-blue-500 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-blue-800 dark:text-blue-300">Your data is yours</p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400">
+                      Download a ZIP file containing all your financial information in JSON format. 
+                      You can use this file to restore your data later or keep it as a backup.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="w-full">
+                    <Download className="h-4 w-4 mr-2" />
+                    Export My Data
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Export Your Data</DialogTitle>
+                    <DialogDescription>
+                      Your export will include all your financial data. This process may take a few moments.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  {isExporting ? (
+                    <div className="py-6 space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Status:</span>
+                          <span className="font-medium capitalize">{exportProgress.stage}</span>
+                        </div>
+                        {exportProgress.currentItem && (
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Current:</span>
+                            <span className="font-medium truncate max-w-[200px]">{exportProgress.currentItem}</span>
+                          </div>
+                        )}
+                        {exportProgress.total > 0 && (
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">Progress:</span>
+                              <span className="font-medium">
+                                {exportProgress.progress} / {exportProgress.total}
+                              </span>
+                            </div>
+                            <Progress value={(exportProgress.progress / exportProgress.total) * 100} />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="py-4 space-y-4">
+                      <div className="bg-muted/50 rounded-lg p-3">
+                        <p className="text-sm font-medium mb-2">Your export will include:</p>
+                        <ul className="space-y-1 text-xs text-muted-foreground">
+                          <li className="flex items-center gap-2">
+                            <CheckCircle className="h-3 w-3 text-green-500" />
+                            Profile information
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <CheckCircle className="h-3 w-3 text-green-500" />
+                            All transactions
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <CheckCircle className="h-3 w-3 text-green-500" />
+                            Accounts and balances
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <CheckCircle className="h-3 w-3 text-green-500" />
+                            Budgets and goals
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <CheckCircle className="h-3 w-3 text-green-500" />
+                            Investment portfolios
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <CheckCircle className="h-3 w-3 text-green-500" />
+                            App settings and preferences
+                          </li>
+                        </ul>
+                      </div>
+                      <DialogFooter className="gap-2">
+                        <Button variant="outline" onClick={() => setExportDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button onClick={handleExport} disabled={isExporting}>
+                          <Download className="h-4 w-4 mr-2" />
+                          Start Export
+                        </Button>
+                      </DialogFooter>
+                    </div>
+                  )}
+                </DialogContent>
+              </Dialog>
+            </CardContent>
+          </Card>
+
+          {/* Import Card with Enhanced Result Display */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Upload className="h-5 w-5 text-primary" />
+                Import Previous Backup
+              </CardTitle>
+              <CardDescription>
+                Restore your data from a previously exported backup file. This will add to your existing data.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-amber-800 dark:text-amber-300">Important Notes</p>
+                    <ul className="text-xs text-amber-600 dark:text-amber-400 list-disc list-inside space-y-1">
+                      <li>Importing will add data to your existing account (no automatic deletion)</li>
+                      <li>Only import backup files created by EcoVest</li>
+                      <li>Files like PDFs and images need to be re-uploaded separately</li>
+                      <li>For account recovery, first create a new account then import</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="w-full">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Import Data
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Import Your Data</DialogTitle>
+                    <DialogDescription>
+                      Select a backup file (.zip) to restore your financial data.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  {importResult ? (
+                    <div className="py-4">
+                      <div className={`p-4 rounded-lg ${
+                        importResult.success ? 'bg-green-50 dark:bg-green-950/20' : 'bg-red-50 dark:bg-red-950/20'
+                      }`}>
+                        <div className="flex items-start gap-3">
+                          {importResult.success ? (
+                            <CheckCircle className="h-5 w-5 text-green-500" />
+                          ) : (
+                            <AlertCircle className="h-5 w-5 text-red-500" />
+                          )}
+                          <div className="flex-1">
+                            <p className={`text-sm font-medium ${
+                              importResult.success ? 'text-green-800 dark:text-green-300' : 'text-red-800 dark:text-red-300'
+                            }`}>
+                              {importResult.message}
+                            </p>
+                            
+                            {/* Detailed Import Stats */}
+                            {importResult.stats && importResult.stats.imported && (
+                              <div className="mt-4">
+                                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
+                                  <CheckCircle className="h-3 w-3 text-green-500" />
+                                  Imported Items:
+                                </p>
+                                <div className="grid grid-cols-2 gap-2">
+                                  {Object.entries(importResult.stats.imported).map(([key, value]) => (
+                                    Number(value) > 0 ? (
+                                      <div key={key} className="bg-white dark:bg-gray-800 rounded p-2 text-center shadow-sm">
+                                        <p className="text-[10px] text-gray-500 dark:text-gray-400 capitalize">{key}</p>
+                                        <p className="text-sm font-bold text-green-600 dark:text-green-400">{String(value)}</p>
+                                      </div>
+                                    ) : null
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {importResult.stats && importResult.stats.skipped && 
+                             Object.values(importResult.stats.skipped).some(v => Number(v) > 0) && (
+                              <div className="mt-3">
+                                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
+                                  <AlertCircle className="h-3 w-3 text-amber-500" />
+                                  Skipped Items:
+                                </p>
+                                <div className="grid grid-cols-2 gap-2">
+                                  {Object.entries(importResult.stats.skipped).map(([key, value]) => (
+                                    Number(value) > 0 ? (
+                                      <div key={key} className="bg-white dark:bg-gray-800 rounded p-2 text-center shadow-sm">
+                                        <p className="text-[10px] text-gray-500 dark:text-gray-400 capitalize">{key}</p>
+                                        <p className="text-sm font-bold text-amber-600 dark:text-amber-400">{String(value)}</p>
+                                      </div>
+                                    ) : null
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      {importResult.success && (
+                        <p className="text-xs text-center text-muted-foreground mt-4">
+                          Closing automatically in 3 seconds...
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="py-4 space-y-4">
+                      <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 text-center">
+                        <input
+                          type="file"
+                          id="import-file"
+                          accept=".zip"
+                          className="hidden"
+                          onChange={handleFileSelect}
+                        />
+                        <label
+                          htmlFor="import-file"
+                          className="cursor-pointer flex flex-col items-center gap-2"
+                        >
+                          <FileText className="h-8 w-8 text-gray-400" />
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            {importFile ? importFile.name : 'Click to select backup file'}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            Only .zip files from EcoVest export are accepted
+                          </span>
+                        </label>
+                      </div>
+
+                      {importFile && (
+                        <div className="bg-muted/50 rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium">Selected File:</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setImportFile(null)}
+                              className="h-6 px-2 text-xs"
+                            >
+                              Clear
+                            </Button>
+                          </div>
+                          <p className="text-xs text-muted-foreground break-all">{importFile.name}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Size: {(importFile.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </div>
+                      )}
+
+                      <DialogFooter className="gap-2">
+                        <Button variant="outline" onClick={() => setImportDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={handleImport} 
+                          disabled={!importFile || isImporting}
+                        >
+                          {isImporting ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Importing...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="h-4 w-4 mr-2" />
+                              Import Data
+                            </>
+                          )}
+                        </Button>
+                      </DialogFooter>
+                    </div>
+                  )}
+                </DialogContent>
+              </Dialog>
+
+              {/* Data Statistics Card */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+                <div className="bg-muted/30 rounded-lg p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Transactions</p>
+                  <p className="text-xl font-bold">{transactions?.length || 0}</p>
+                </div>
+                <div className="bg-muted/30 rounded-lg p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Accounts</p>
+                  <p className="text-xl font-bold">{userData?.accounts?.length || 0}</p>
+                </div>
+                <div className="bg-muted/30 rounded-lg p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Budgets</p>
+                  <p className="text-xl font-bold">{budgets?.length || 0}</p>
+                </div>
+                <div className="bg-muted/30 rounded-lg p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Goals</p>
+                  <p className="text-xl font-bold">{goals?.length || 0}</p>
+                </div>
               </div>
             </CardContent>
           </Card>

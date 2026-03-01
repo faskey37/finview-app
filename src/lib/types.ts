@@ -56,6 +56,7 @@ export type Account = {
 };
 
 export type UserData = {
+  accounts: any;
   uid: string;
   email: string;
   displayName: string;

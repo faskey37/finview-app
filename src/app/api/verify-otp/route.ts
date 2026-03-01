@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
-import { otpStore } from '@/lib/otp-store';
+import { db } from '@/lib/firebase';
+import { doc, getDoc, deleteDoc } from 'firebase/firestore';
+import { verifyOTP } from '@/lib/otp-utils';
 
 export async function POST(request: Request) {
   try {
     const { email, otp } = await request.json();
     
-    console.log('Verifying OTP - Email:', email, 'OTP:', otp);
+    console.log('Verifying OTP for:', email);
 
     if (!email || !otp) {
       return NextResponse.json(
@@ -14,32 +16,32 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get stored OTP from Firestore
-    const storedData = await otpStore.get(email);
+    // Get stored OTP hash from Firestore
+    const otpRef = doc(db, 'otps', email.replace(/\./g, '_'));
+    const otpDoc = await getDoc(otpRef);
 
-    if (!storedData) {
-      console.log('No OTP found for email:', email);
+    if (!otpDoc.exists()) {
       return NextResponse.json(
         { error: 'No OTP found for this email. Please request a new one.' },
         { status: 400 }
       );
     }
 
-    console.log('Stored OTP data:', storedData);
+    const storedData = otpDoc.data();
 
     // Check if OTP has expired
     if (Date.now() > storedData.expires) {
-      console.log('OTP expired for email:', email);
-      await otpStore.delete(email);
+      await deleteDoc(otpRef);
       return NextResponse.json(
         { error: 'OTP has expired. Please request a new one.' },
         { status: 400 }
       );
     }
 
-    // Verify OTP
-    if (storedData.otp !== otp) {
-      console.log('OTP mismatch. Expected:', storedData.otp, 'Received:', otp);
+    // Verify OTP against stored hash
+    const isValid = await verifyOTP(otp, storedData.otpHash);
+
+    if (!isValid) {
       return NextResponse.json(
         { error: 'Invalid OTP. Please try again.' },
         { status: 400 }
@@ -47,7 +49,7 @@ export async function POST(request: Request) {
     }
 
     // OTP is valid - remove it from store
-    await otpStore.delete(email);
+    await deleteDoc(otpRef);
     console.log('OTP verified successfully for email:', email);
 
     return NextResponse.json({ 
@@ -61,13 +63,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
-
-export async function GET() {
-  // Optional: Clean up expired OTPs
-  await otpStore.cleanupExpired();
-  
-  return NextResponse.json({ 
-    message: 'OTP verification endpoint' 
-  });
 }

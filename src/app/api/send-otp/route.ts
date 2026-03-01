@@ -1,11 +1,8 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
-import { otpStore } from '@/lib/otp-store';
-
-// Generate a 6-digit OTP
-function generateOTP(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
+import { hashOTP, generateOTP } from '@/lib/otp-utils';
+import { db } from '@/lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
 export async function POST(request: Request) {
   try {
@@ -21,12 +18,21 @@ export async function POST(request: Request) {
     // Generate OTP
     const otp = generateOTP();
     
-    // Store OTP in Firestore with expiration (10 minutes)
-    await otpStore.set(email, otp, 10);
+    // HASH the OTP before storing
+    const hashedOTP = await hashOTP(otp);
 
-    console.log('OTP generated and stored for:', email, 'OTP:', otp);
+    // Store HASHED OTP in Firestore
+    const otpRef = doc(db, 'otps', email.replace(/\./g, '_'));
+    await setDoc(otpRef, {
+      email,
+      otpHash: hashedOTP, // Store hash, NOT plain text
+      expires: Date.now() + 10 * 60 * 1000,
+      createdAt: new Date().toISOString(),
+    });
 
-    // Create transporter using your email configuration
+    console.log(`Generated OTP for ${email}: ${otp} (hash: ${hashedOTP.substring(0, 20)}...)`);
+
+    // Send email with plain OTP (user needs the plain one)
     const transporter = nodemailer.createTransport({
       host: process.env.EMAIL_SERVER,
       port: Number(process.env.EMAIL_PORT),
@@ -37,7 +43,6 @@ export async function POST(request: Request) {
       },
     });
 
-    // Send email with OTP
     await transporter.sendMail({
       from: process.env.EMAIL_FROM,
       to: email,
@@ -49,16 +54,13 @@ export async function POST(request: Request) {
           </div>
           <h2 style="color: #333; text-align: center;">Verify Your Email Address</h2>
           <p style="color: #666; font-size: 16px; text-align: center;">
-            Thank you for signing up with EcoVest! Please use the following verification code to complete your registration:
+            Thank you for signing up with EcoVest! Please use the following verification code:
           </p>
           <div style="background: linear-gradient(135deg, #10b981, #8b5cf6); padding: 20px; border-radius: 10px; text-align: center; margin: 20px 0;">
             <h1 style="color: white; font-size: 48px; letter-spacing: 10px; margin: 0;">${otp}</h1>
           </div>
           <p style="color: #666; font-size: 14px; text-align: center;">
             This code will expire in 10 minutes.
-          </p>
-          <p style="color: #999; font-size: 12px; text-align: center; margin-top: 30px;">
-            If you didn't request this verification, please ignore this email.
           </p>
         </div>
       `,
