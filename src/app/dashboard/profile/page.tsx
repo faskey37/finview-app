@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import * as React from "react";
 import { useForm } from "react-hook-form";
@@ -10,11 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { 
   Sparkles, Edit, CalendarIcon, BadgeCheck, Trash2, Mail, Send, Phone, Loader2, 
   Sprout, User, Shield, Bell, CreditCard, Download, Upload, FileText, 
-  AlertCircle, CheckCircle, Database, RefreshCw, Archive
+  AlertCircle, CheckCircle, Database, RefreshCw, Archive, MapPin, Briefcase, 
+  DollarSign, Target, GraduationCap, PiggyBank, Globe, Award, Clock, Heart,
+  TrendingUp, Leaf, Crown, Calendar, Users
 } from "lucide-react";
 import {
   Dialog,
@@ -38,7 +40,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { sendEmail } from "@/ai/flows/send-email";
 import { generateMonthlySummary } from "@/ai/flows/generate-monthly-summary";
 import { useTransactions } from "@/hooks/use-transactions";
@@ -48,14 +50,72 @@ import { ConfirmationResult } from "firebase/auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import JSZip from 'jszip';
 
 // Import/Export Service
 import { exportUserData, importUserData } from "@/services/data-export";
 import type { ExportProgress, ExportResult, ImportResult } from "@/services/data-export";
 
+// Constants from signup page
+const COUNTRIES = [
+  'United States', 'Canada', 'United Kingdom', 'Australia', 'India', 
+  'Germany', 'France', 'Japan', 'Singapore', 'UAE', 'Other'
+];
+
+const OCCUPATIONS = [
+  'Salaried Employee', 'Business Owner', 'Freelancer', 'Self-Employed',
+  'Student', 'Retired', 'Homemaker', 'Unemployed', 'Other'
+];
+
+const INCOME_RANGES = [
+  'Under $25,000', '$25,000 - $50,000', '$50,000 - $75,000',
+  '$75,000 - $100,000', '$100,000 - $150,000', '$150,000 - $200,000',
+  'Over $200,000', 'Prefer not to say'
+];
+
+const FINANCIAL_GOALS = [
+  { id: 'saving', label: 'Save more money', icon: PiggyBank },
+  { id: 'investing', label: 'Start investing', icon: TrendingUp },
+  { id: 'debt', label: 'Pay off debt', icon: CreditCard },
+  { id: 'budget', label: 'Better budgeting', icon: Target },
+  { id: 'tracking', label: 'Track expenses', icon: Database },
+  { id: 'retirement', label: 'Plan for retirement', icon: Clock },
+  { id: 'house', label: 'Buy a house', icon: Home },
+  { id: 'emergency', label: 'Build emergency fund', icon: Shield },
+  { id: 'education', label: 'Education fund', icon: GraduationCap },
+  { id: 'travel', label: 'Travel', icon: Globe },
+];
+
+const EXPERIENCE_LEVELS = [
+  { id: 'beginner', label: 'Beginner - New to finance' },
+  { id: 'intermediate', label: 'Intermediate - Some knowledge' },
+  { id: 'advanced', label: 'Advanced - Experienced' },
+  { id: 'expert', label: 'Expert - Financial professional' },
+];
+
+// Profile Schemas
 const profileSchema = z.object({
   name: z.string().min(1, "Name is required"),
+  bio: z.string().optional(),
+  country: z.string().min(1, "Country is required"),
+  city: z.string().min(1, "City is required"),
+  age: z.string().refine((val) => !val || (parseInt(val) >= 18 && parseInt(val) <= 120), {
+    message: "Age must be between 18 and 120",
+  }).optional(),
+  occupation: z.string().optional(),
+  phone: z.string().optional(),
+});
+
+const financialSchema = z.object({
+  incomeRange: z.string().optional(),
+  experienceLevel: z.string().optional(),
+  hasEmergencyFund: z.boolean().optional(),
+  monthlySavings: z.string().optional(),
+  financialGoals: z.array(z.string()).optional(),
+  roundUpForClimate: z.boolean().optional(),
 });
 
 const emailSchema = z.object({
@@ -80,7 +140,7 @@ const deleteSchema = z.object({
 });
 
 export default function ProfilePage() {
-  const { user, loading, userData, updateAuthUserProfile, isPro } = useAuth();
+  const { user, loading, userData, updateAuthUserProfile, updateUserData, isPro } = useAuth();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = React.useState(false);
   const [isSendingReset, setIsSendingReset] = React.useState(false);
@@ -92,6 +152,7 @@ export default function ProfilePage() {
   const [accountAge, setAccountAge] = React.useState('');
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [confirmationResult, setConfirmationResult] = React.useState<ConfirmationResult | null>(null);
+  const [editingSection, setEditingSection] = React.useState<string | null>(null);
   
   // Export/Import states
   const [exportDialogOpen, setExportDialogOpen] = React.useState(false);
@@ -115,9 +176,31 @@ export default function ProfilePage() {
   const { budgets } = useBudgets();
   const { goals } = useGoals();
 
+  // Profile Form
   const profileForm = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
-    defaultValues: { name: "" },
+    defaultValues: {
+      name: "",
+      bio: "",
+      country: "",
+      city: "",
+      age: "",
+      occupation: "",
+      phone: "",
+    },
+  });
+
+  // Financial Form
+  const financialForm = useForm<z.infer<typeof financialSchema>>({
+    resolver: zodResolver(financialSchema),
+    defaultValues: {
+      incomeRange: "",
+      experienceLevel: "",
+      hasEmergencyFund: false,
+      monthlySavings: "",
+      financialGoals: [],
+      roundUpForClimate: false,
+    },
   });
   
   const emailForm = useForm<z.infer<typeof emailSchema>>({
@@ -145,25 +228,95 @@ export default function ProfilePage() {
     defaultValues: { password: "" },
   });
 
+  // Load user data into forms
   React.useEffect(() => {
-    profileForm.reset({ name: user?.displayName || "" });
+    if (userData) {
+      profileForm.reset({
+        name: userData.displayName || user?.displayName || "",
+        bio: userData.bio || "",
+        country: userData.country || "",
+        city: userData.city || "",
+        age: userData.age?.toString() || "",
+        occupation: userData.occupation || "",
+        phone: user?.phoneNumber || userData.phone || "",
+      });
+
+      financialForm.reset({
+        incomeRange: userData.incomeRange || "",
+        experienceLevel: userData.experienceLevel || "",
+        hasEmergencyFund: userData.hasEmergencyFund ?? false,
+        monthlySavings: userData.monthlySavings?.toString() || "",
+        financialGoals: userData.financialGoals || [],
+        roundUpForClimate: userData.roundUpForClimate || false,
+      });
+    }
+    
     emailForm.reset({ email: user?.email || "", password: "" });
     photoForm.reset({ url: userData?.photoURL || user?.photoURL || "" });
-     if (user) {
-        phoneForm.reset({ phoneNumber: user.phoneNumber || "" });
-        if (user.metadata.creationTime) {
-            setAccountAge(formatDistanceToNow(new Date(user.metadata.creationTime), { addSuffix: true }));
-        }
+    
+    if (user) {
+      phoneForm.reset({ phoneNumber: user.phoneNumber || userData?.phone || "" });
+      if (user.metadata.creationTime) {
+        setAccountAge(formatDistanceToNow(new Date(user.metadata.creationTime), { addSuffix: true }));
+      }
     }
-  }, [user, userData, profileForm, emailForm, photoForm, phoneForm]);
+  }, [user, userData, profileForm, financialForm, emailForm, photoForm, phoneForm]);
 
+  // Profile update handler
   async function handleProfileUpdate(values: z.infer<typeof profileSchema>) {
     setIsSaving(true);
     try {
       await updateAuthUserProfile({ displayName: values.name });
-      toast({ title: "Success", description: "Profile updated successfully." });
+      await updateUserData({
+        displayName: values.name,
+        bio: values.bio,
+        country: values.country,
+        city: values.city,
+        age: values.age ? parseInt(values.age) : undefined,
+        occupation: values.occupation,
+        phone: values.phone,
+      });
+      
+      toast({ 
+        title: "Success", 
+        description: "Profile information updated successfully." 
+      });
+      setEditingSection(null);
     } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to update profile." });
+      toast({ 
+        variant: "destructive", 
+        title: "Error", 
+        description: "Failed to update profile." 
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  // Financial info update handler
+  async function handleFinancialUpdate(values: z.infer<typeof financialSchema>) {
+    setIsSaving(true);
+    try {
+      await updateUserData({
+        incomeRange: values.incomeRange,
+        experienceLevel: values.experienceLevel,
+        hasEmergencyFund: values.hasEmergencyFund,
+        monthlySavings: values.monthlySavings ? parseFloat(values.monthlySavings) : undefined,
+        financialGoals: values.financialGoals,
+        roundUpForClimate: values.roundUpForClimate,
+      });
+      
+      toast({ 
+        title: "Success", 
+        description: "Financial information updated successfully." 
+      });
+      setEditingSection(null);
+    } catch (error) {
+      toast({ 
+        variant: "destructive", 
+        title: "Error", 
+        description: "Failed to update financial information." 
+      });
     } finally {
       setIsSaving(false);
     }
@@ -173,10 +326,17 @@ export default function ProfilePage() {
     setIsSaving(true);
     try {
       await updateUserEmail(values.email, values.password);
-      toast({ title: "Success!", description: "A verification link has been sent to your new email address. Please verify to complete the change." });
+      toast({ 
+        title: "Success!", 
+        description: "A verification link has been sent to your new email address." 
+      });
       setEmailDialogOpen(false);
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message || "Failed to update email." });
+      toast({ 
+        variant: "destructive", 
+        title: "Error", 
+        description: error.message || "Failed to update email." 
+      });
     } finally {
       setIsSaving(false);
     }
@@ -190,22 +350,33 @@ export default function ProfilePage() {
       setPhotoDialogOpen(false);
     } catch (error) {
       console.error(error);
-      toast({ variant: "destructive", title: "Error", description: "Failed to update profile picture." });
+      toast({ 
+        variant: "destructive", 
+        title: "Error", 
+        description: "Failed to update profile picture." 
+      });
     } finally {
       setIsSaving(false);
     }
   }
 
-    async function handleLinkPhone(values: z.infer<typeof phoneSchema>) {
+  async function handleLinkPhone(values: z.infer<typeof phoneSchema>) {
     setIsSaving(true);
     try {
-        const result = await linkPhoneNumber(values.phoneNumber);
-        setConfirmationResult(result);
-        toast({ title: "Verification Code Sent", description: "Please check your phone for the code." });
+      const result = await linkPhoneNumber(values.phoneNumber);
+      setConfirmationResult(result);
+      toast({ 
+        title: "Verification Code Sent", 
+        description: "Please check your phone for the code." 
+      });
     } catch (error: any) {
-        toast({ variant: "destructive", title: "Error", description: error.message || "Failed to send code." });
+      toast({ 
+        variant: "destructive", 
+        title: "Error", 
+        description: error.message || "Failed to send code." 
+      });
     } finally {
-        setIsSaving(false);
+      setIsSaving(false);
     }
   }
 
@@ -213,26 +384,39 @@ export default function ProfilePage() {
     if (!confirmationResult) return;
     setIsSaving(true);
     try {
-        await verifyOtpForLinking(confirmationResult, values.otp);
-        toast({ title: "Success", description: "Phone number linked successfully." });
-        setPhoneDialogOpen(false);
-        setConfirmationResult(null);
+      await verifyOtpForLinking(confirmationResult, values.otp);
+      toast({ 
+        title: "Success", 
+        description: "Phone number linked successfully." 
+      });
+      setPhoneDialogOpen(false);
+      setConfirmationResult(null);
     } catch (error: any) {
-        toast({ variant: "destructive", title: "Error", description: error.message || "Invalid code." });
+      toast({ 
+        variant: "destructive", 
+        title: "Error", 
+        description: error.message || "Invalid code." 
+      });
     } finally {
-        setIsSaving(false);
+      setIsSaving(false);
     }
   }
-
 
   async function handlePasswordReset() {
     if (!user?.email) return;
     setIsSendingReset(true);
     try {
       await sendPasswordReset(user.email);
-      toast({ title: "Email Sent", description: "Check your inbox for a password reset link." });
+      toast({ 
+        title: "Email Sent", 
+        description: "Check your inbox for a password reset link." 
+      });
     } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to send reset email." });
+      toast({ 
+        variant: "destructive", 
+        title: "Error", 
+        description: "Failed to send reset email." 
+      });
     } finally {
       setIsSendingReset(false);
     }
@@ -244,15 +428,22 @@ export default function ProfilePage() {
     try {
       await reauthenticate(user.email, values.password);
       await deleteUserAccount();
-      toast({ title: "Account Deleted", description: "Your account has been permanently deleted." });
+      toast({ 
+        title: "Account Deleted", 
+        description: "Your account has been permanently deleted." 
+      });
     } catch (error: any) {
-       toast({ variant: "destructive", title: "Error", description: error.message || "Failed to delete account. Please check your password." });
+      toast({ 
+        variant: "destructive", 
+        title: "Error", 
+        description: error.message || "Failed to delete account." 
+      });
     } finally {
-        setIsDeleting(false);
+      setIsDeleting(false);
     }
   }
   
-   async function handleSendTestEmail() {
+  async function handleSendTestEmail() {
     if (!user?.email) return;
     setIsSendingTestEmail(true);
     try {
@@ -261,13 +452,17 @@ export default function ProfilePage() {
         subject: "Test Email from EcoVest",
         html: "This is a test email to confirm that your email service is configured correctly.",
       });
-       if (result.success) {
+      if (result.success) {
         toast({ title: "Test Email Sent", description: "Please check your inbox." });
       } else {
         throw new Error(result.message);
       }
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Error: Email Not Sent", description: error.message });
+      toast({ 
+        variant: "destructive", 
+        title: "Error: Email Not Sent", 
+        description: error.message 
+      });
     } finally {
       setIsSendingTestEmail(false);
     }
@@ -290,148 +485,139 @@ export default function ProfilePage() {
       });
 
       if (emailResult.success) {
-        toast({ title: "Monthly Summary Sent", description: "Check your inbox for your AI-generated summary." });
+        toast({ 
+          title: "Monthly Summary Sent", 
+          description: "Check your inbox for your AI-generated summary." 
+        });
       } else {
         throw new Error(emailResult.message);
       }
     } catch (error: any) {
-       toast({ variant: "destructive", title: "Error", description: error.message || "Could not send summary." });
+      toast({ 
+        variant: "destructive", 
+        title: "Error", 
+        description: error.message || "Could not send summary." 
+      });
     } finally {
       setIsSendingSummary(false);
     }
   }
 
-  // Debug function to analyze import file
-  // Replace your existing debugImportFile function with this:
-
-const debugImportFile = async (file: File) => {
-  try {
-    console.log('🔍 Analyzing import file:', file.name, 'size:', file.size);
-    
-    // Read the file as array buffer
-    const arrayBuffer = await file.arrayBuffer();
-    console.log('📦 File read as array buffer, size:', arrayBuffer.byteLength);
-    
-    // Load ZIP
-    const zip = await JSZip.loadAsync(arrayBuffer);
-    console.log('📂 ZIP loaded, files:', Object.keys(zip.files));
-    
-    // Check for export.json first
-    const exportFile = zip.file('export.json');
-    if (exportFile) {
-      const content = await exportFile.async('string');
-      const data = JSON.parse(content);
-      console.log('📊 Export data found:', {
-        accounts: data.accounts?.length || 0,
-        transactions: data.transactions?.length || 0,
-        budgets: data.budgets?.length || 0,
-        goals: data.goals?.length || 0,
-        investments: data.investments?.length || 0,
-        recurring: data.recurringTransactions?.length || 0
-      });
+  const debugImportFile = async (file: File) => {
+    try {
+      console.log('🔍 Analyzing import file:', file.name, 'size:', file.size);
       
-      const total = (data.accounts?.length || 0) + 
-                    (data.transactions?.length || 0) + 
-                    (data.budgets?.length || 0) + 
-                    (data.goals?.length || 0) + 
-                    (data.investments?.length || 0) + 
-                    (data.recurringTransactions?.length || 0);
+      const arrayBuffer = await file.arrayBuffer();
+      console.log('📦 File read as array buffer, size:', arrayBuffer.byteLength);
       
-      toast({
-        title: "Backup File Analysis",
-        description: `Found ${total} items to import.`,
-      });
-    } else {
-      // Check individual files
-      let totalItems = 0;
-      const fileTypes = ['accounts.json', 'transactions.json', 'budgets.json', 'goals.json', 'investments.json', 'recurring.json'];
+      const zip = await JSZip.loadAsync(arrayBuffer);
+      console.log('📂 ZIP loaded, files:', Object.keys(zip.files));
       
-      for (const fileName of fileTypes) {
-        const file = zip.file(fileName);
-        if (file) {
-          const content = await file.async('string');
-          const data = JSON.parse(content);
-          totalItems += data.length || 0;
-          console.log(`📁 ${fileName}:`, data.length || 0, 'items');
+      const exportFile = zip.file('export.json');
+      if (exportFile) {
+        const content = await exportFile.async('string');
+        const data = JSON.parse(content);
+        console.log('📊 Export data found:', {
+          accounts: data.accounts?.length || 0,
+          transactions: data.transactions?.length || 0,
+          budgets: data.budgets?.length || 0,
+          goals: data.goals?.length || 0,
+          investments: data.investments?.length || 0,
+          recurring: data.recurringTransactions?.length || 0
+        });
+        
+        const total = (data.accounts?.length || 0) + 
+                      (data.transactions?.length || 0) + 
+                      (data.budgets?.length || 0) + 
+                      (data.goals?.length || 0) + 
+                      (data.investments?.length || 0) + 
+                      (data.recurringTransactions?.length || 0);
+        
+        toast({
+          title: "Backup File Analysis",
+          description: `Found ${total} items to import.`,
+        });
+      } else {
+        let totalItems = 0;
+        const fileTypes = ['accounts.json', 'transactions.json', 'budgets.json', 'goals.json', 'investments.json', 'recurring.json'];
+        
+        for (const fileName of fileTypes) {
+          const file = zip.file(fileName);
+          if (file) {
+            const content = await file.async('string');
+            const data = JSON.parse(content);
+            totalItems += data.length || 0;
+            console.log(`📁 ${fileName}:`, data.length || 0, 'items');
+          }
         }
+        
+        toast({
+          title: "Backup File Analysis",
+          description: `Found approximately ${totalItems} items to import.`,
+        });
       }
-      
+    } catch (error) {
+      console.error('❌ Error analyzing import file:', error);
       toast({
-        title: "Backup File Analysis",
-        description: `Found approximately ${totalItems} items to import.`,
+        variant: "destructive",
+        title: "File Analysis Failed",
+        description: error instanceof Error ? error.message : "Could not read the backup file",
       });
     }
-  } catch (error) {
-    console.error('❌ Error analyzing import file:', error);
-    toast({
-      variant: "destructive",
-      title: "File Analysis Failed",
-      description: error instanceof Error ? error.message : "Could not read the backup file",
-    });
-  }
-};
+  };
 
-  // Handle file selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     setImportFile(file || null);
-    setImportResult(null); // Clear previous results
+    setImportResult(null);
     if (file) {
       debugImportFile(file);
     }
   };
 
-  // Export handlers
- // Export handlers
-const handleExport = async () => {
-  setIsExporting(true);
-  setExportProgress({ stage: 'preparing', progress: 0, total: 0, currentItem: '' });
-  
-  try {
-    console.log('Starting export...');
+  const handleExport = async () => {
+    setIsExporting(true);
+    setExportProgress({ stage: 'preparing', progress: 0, total: 0, currentItem: '' });
     
-    // Update progress callback
-    const onProgress = (progress: ExportProgress) => {
-      console.log('Export progress:', progress);
-      setExportProgress(progress);
-    };
+    try {
+      const onProgress = (progress: ExportProgress) => {
+        setExportProgress(progress);
+      };
 
-    console.log('Calling exportUserData...');
-    const result = await exportUserData(onProgress);
-    console.log('Export result received:', result);
+      const result = await exportUserData(onProgress);
 
-    if (!result || !result.blob) {
-      throw new Error('No data received from export');
+      if (!result || !result.blob) {
+        throw new Error('No data received from export');
+      }
+
+      const url = window.URL.createObjectURL(result.blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = result.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Export Complete",
+        description: `Successfully exported ${result.stats?.totalItems || 0} items.`,
+      });
+      
+      setExportDialogOpen(false);
+    } catch (error: any) {
+      console.error('Export error details:', error);
+      toast({
+        variant: "destructive",
+        title: "Export Failed",
+        description: error.message || "Failed to export data. Check console for details.",
+      });
+    } finally {
+      setIsExporting(false);
+      setExportProgress({ stage: 'idle', progress: 0, total: 0, currentItem: '' });
     }
+  };
 
-    // Create download link
-    const url = window.URL.createObjectURL(result.blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = result.filename;
-    document.body.appendChild(a); // Append to body
-    a.click();
-    document.body.removeChild(a); // Remove after clicking
-    window.URL.revokeObjectURL(url); // Clean up
-    
-    toast({
-      title: "Export Complete",
-      description: `Successfully exported ${result.stats?.totalItems || 0} items.`,
-    });
-    
-    setExportDialogOpen(false);
-  } catch (error: any) {
-    console.error('Export error details:', error);
-    toast({
-      variant: "destructive",
-      title: "Export Failed",
-      description: error.message || "Failed to export data. Check console for details.",
-    });
-  } finally {
-    setIsExporting(false);
-    setExportProgress({ stage: 'idle', progress: 0, total: 0, currentItem: '' });
-  }
-};
   const handleImport = async () => {
     if (!importFile) return;
     
@@ -453,7 +639,6 @@ const handleExport = async () => {
           description: result.message,
         });
         
-        // Close dialog after 3 seconds on success
         setTimeout(() => {
           setImportDialogOpen(false);
           setImportFile(null);
@@ -478,15 +663,15 @@ const handleExport = async () => {
 
   if (loading) {
     return (
-       <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">Profile Settings</h1>
         </div>
         <div className="space-y-6">
-            <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-48 w-full" />
         </div>
-       </div>
+      </div>
     );
   }
 
@@ -506,13 +691,13 @@ const handleExport = async () => {
             <User className="h-4 w-4" />
             Profile
           </TabsTrigger>
+          <TabsTrigger value="financial" className="flex items-center gap-2">
+            <DollarSign className="h-4 w-4" />
+            Financial
+          </TabsTrigger>
           <TabsTrigger value="security" className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
             Security
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2">
-            <Bell className="h-4 w-4" />
-            Notifications
           </TabsTrigger>
           <TabsTrigger value="data" className="flex items-center gap-2">
             <Database className="h-4 w-4" />
@@ -520,117 +705,464 @@ const handleExport = async () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* Profile Tab - Existing */}
+        {/* Profile Tab - Personal Information */}
         <TabsContent value="profile" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Personal Information</CardTitle>
-              <CardDescription>Update your personal details and profile picture</CardDescription>
+              <CardTitle>Profile Information</CardTitle>
+              <CardDescription>Your personal details and how others see you on EcoVest</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center gap-6">
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-16 w-16">
+              {/* Profile Header */}
+              <div className="flex items-start gap-6 flex-wrap">
+                <div className="relative">
+                  <Avatar className="h-24 w-24 border-4 border-background">
                     <AvatarImage src={userData?.photoURL || user?.photoURL || ""} />
-                    <AvatarFallback className="text-lg">
+                    <AvatarFallback className="text-2xl">
                       {user?.displayName?.charAt(0).toUpperCase() || 'U'}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
-                    <Dialog open={photoDialogOpen} onOpenChange={setPhotoDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm">Change Photo</Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-md">
-                        <Form {...photoForm}>
-                          <form onSubmit={photoForm.handleSubmit(handlePhotoUpdate)}>
-                            <DialogHeader>
-                              <DialogTitle>Update Profile Picture</DialogTitle>
-                              <DialogDescription>
-                                Enter a URL for your new profile picture.
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="py-4">
-                              <FormField
-                                control={photoForm.control}
-                                name="url"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Image URL</FormLabel>
-                                    <FormControl>
-                                      <Input type="text" placeholder="https://example.com/image.png" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-                            <DialogFooter>
-                              <Button type="submit" disabled={isSaving}>
-                                {isSaving ? "Saving..." : "Save Changes"}
-                              </Button>
-                            </DialogFooter>
-                          </form>
-                        </Form>
-                      </DialogContent>
-                    </Dialog>
+                  <Dialog open={photoDialogOpen} onOpenChange={setPhotoDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button 
+                        size="icon" 
+                        variant="outline" 
+                        className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                      <Form {...photoForm}>
+                        <form onSubmit={photoForm.handleSubmit(handlePhotoUpdate)}>
+                          <DialogHeader>
+                            <DialogTitle>Update Profile Picture</DialogTitle>
+                            <DialogDescription>
+                              Enter a URL for your new profile picture.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="py-4">
+                            <FormField
+                              control={photoForm.control}
+                              name="url"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Image URL</FormLabel>
+                                  <FormControl>
+                                    <Input type="text" placeholder="https://example.com/image.png" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                          <DialogFooter>
+                            <Button type="submit" disabled={isSaving}>
+                              {isSaving ? "Saving..." : "Save Changes"}
+                            </Button>
+                          </DialogFooter>
+                        </form>
+                      </Form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-2xl font-bold">{userData?.displayName || user?.displayName}</h2>
+                    {userData?.emailVerified && (
+                      <BadgeCheck className="h-5 w-5 text-primary" />
+                    )}
+                  </div>
+                  <p className="text-muted-foreground">{user?.email}</p>
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-1">
+                      <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                      <span>Joined {accountAge}</span>
+                    </div>
+                    {userData?.country && (
+                      <div className="flex items-center gap-1">
+                        <Globe className="h-4 w-4 text-muted-foreground" />
+                        <span>{userData.country}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                <Badge variant="outline" className="px-3 py-1">
+                  <Sprout className="h-3 w-3 mr-1 text-primary" />
+                  {userData?.ecoPoints || 0} Eco Points
+                </Badge>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
-                  <CalendarIcon className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">Account Age</p>
-                    <p className="text-lg font-semibold">{accountAge}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
-                  <BadgeCheck className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">Status</p>
-                    <p className="text-lg font-semibold">{isPro ? "Pro" : "Basic"}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
-                  <Sprout className="h-5 w-5 text-primary" />
-                  <div>
-                    <p className="text-sm font-medium">Eco-Points</p>
-                    <p className="text-lg font-semibold">{userData?.ecoPoints || 0}</p>
-                  </div>
-                </div>
-              </div>
+              <Separator />
 
+              {/* Profile Form */}
               <Form {...profileForm}>
                 <form onSubmit={profileForm.handleSubmit(handleProfileUpdate)} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={profileForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Full Name</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={profileForm.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone Number</FormLabel>
+                          <FormControl>
+                            <Input type="tel" placeholder="+1 123 456 7890" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={profileForm.control}
+                      name="country"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Country</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select your country" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {COUNTRIES.map((country) => (
+                                <SelectItem key={country} value={country}>
+                                  {country}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={profileForm.control}
+                      name="city"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>City</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter your city" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={profileForm.control}
+                      name="age"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Age</FormLabel>
+                          <FormControl>
+                            <Input type="number" min="18" max="120" placeholder="Enter your age" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={profileForm.control}
+                      name="occupation"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Occupation</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select your occupation" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {OCCUPATIONS.map((occ) => (
+                                <SelectItem key={occ} value={occ}>
+                                  {occ}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
                   <FormField
                     control={profileForm.control}
-                    name="name"
+                    name="bio"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Display Name</FormLabel>
+                        <FormLabel>Bio</FormLabel>
                         <FormControl>
-                          <div className="flex gap-2">
-                            <Input {...field} className="flex-1" />
-                            <Button type="submit" disabled={isSaving} size="sm">
-                              {isSaving ? "Saving..." : "Update"}
-                            </Button>
-                          </div>
+                          <Textarea 
+                            placeholder="Tell us a little about yourself..." 
+                            className="resize-none" 
+                            {...field} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
+                  <Button type="submit" disabled={isSaving}>
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save Changes"
+                    )}
+                  </Button>
                 </form>
               </Form>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Security Tab - Existing */}
+        {/* Financial Tab */}
+        <TabsContent value="financial" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-primary" />
+                Financial Profile
+              </CardTitle>
+              <CardDescription>
+                Help us personalize your experience by sharing your financial goals and preferences
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...financialForm}>
+                <form onSubmit={financialForm.handleSubmit(handleFinancialUpdate)} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Income Range */}
+                    <FormField
+                      control={financialForm.control}
+                      name="incomeRange"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Annual Income Range</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select income range" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {INCOME_RANGES.map((range) => (
+                                <SelectItem key={range} value={range}>
+                                  {range}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Experience Level */}
+                    <FormField
+                      control={financialForm.control}
+                      name="experienceLevel"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Financial Experience</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select experience level" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {EXPERIENCE_LEVELS.map((level) => (
+                                <SelectItem key={level.id} value={level.id}>
+                                  {level.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Monthly Savings */}
+                    <FormField
+                      control={financialForm.control}
+                      name="monthlySavings"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Monthly Savings (Optional)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              min="0" 
+                              step="100" 
+                              placeholder="Amount you can save monthly" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Emergency Fund */}
+                    <FormField
+                      control={financialForm.control}
+                      name="hasEmergencyFund"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">Emergency Fund</FormLabel>
+                            <FormDescription>
+                              Do you have an emergency fund saved?
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Financial Goals */}
+                  <FormField
+                    control={financialForm.control}
+                    name="financialGoals"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Financial Goals (Select all that apply)</FormLabel>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
+                          {FINANCIAL_GOALS.map((goal) => {
+                            const Icon = goal.icon;
+                            const isSelected = field.value?.includes(goal.id);
+                            return (
+                              <button
+                                key={goal.id}
+                                type="button"
+                                onClick={() => {
+                                  const newValue = isSelected
+                                    ? field.value?.filter(id => id !== goal.id)
+                                    : [...(field.value || []), goal.id];
+                                  field.onChange(newValue);
+                                }}
+                                className={`
+                                  flex items-center gap-2 p-3 rounded-lg border transition-all
+                                  ${isSelected 
+                                    ? 'bg-primary text-primary-foreground border-primary' 
+                                    : 'bg-background hover:bg-muted border-input'
+                                  }
+                                `}
+                              >
+                                <Icon className="h-4 w-4" />
+                                <span className="text-sm">{goal.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Climate Contribution */}
+                  <FormField
+                    control={financialForm.control}
+                    name="roundUpForClimate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base flex items-center gap-2">
+                            <Leaf className="h-4 w-4 text-green-500" />
+                            Round-Up for Climate
+                          </FormLabel>
+                          <FormDescription>
+                            Automatically round up your transactions and donate the spare change to climate projects
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button type="submit" disabled={isSaving}>
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save Financial Profile"
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+
+          {/* Stats Overview */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Financial Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-muted/30 rounded-lg p-4 text-center">
+                  <p className="text-sm text-muted-foreground">Transactions</p>
+                  <p className="text-2xl font-bold">{transactions?.length || 0}</p>
+                </div>
+                <div className="bg-muted/30 rounded-lg p-4 text-center">
+                  <p className="text-sm text-muted-foreground">Accounts</p>
+                  <p className="text-2xl font-bold">{userData?.accounts?.length || 0}</p>
+                </div>
+                <div className="bg-muted/30 rounded-lg p-4 text-center">
+                  <p className="text-sm text-muted-foreground">Budgets</p>
+                  <p className="text-2xl font-bold">{budgets?.length || 0}</p>
+                </div>
+                <div className="bg-muted/30 rounded-lg p-4 text-center">
+                  <p className="text-sm text-muted-foreground">Goals</p>
+                  <p className="text-2xl font-bold">{goals?.length || 0}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Security Tab */}
         <TabsContent value="security" className="space-y-6">
           <Card>
             <CardHeader>
@@ -700,7 +1232,7 @@ const handleExport = async () => {
                     <div>
                       <p className="font-medium">Phone Number</p>
                       <p className="text-sm text-muted-foreground">
-                        {user?.phoneNumber || "Not linked"}
+                        {user?.phoneNumber || userData?.phone || "Not linked"}
                       </p>
                     </div>
                   </div>
@@ -830,55 +1362,8 @@ const handleExport = async () => {
           </Card>
         </TabsContent>
 
-        {/* Notifications Tab - Existing */}
-        <TabsContent value="notifications" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Email Notifications</CardTitle>
-              <CardDescription>Manage your email preferences and test delivery</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Mail className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium">Test Email Delivery</p>
-                    <p className="text-sm text-muted-foreground">Verify your email service is working</p>
-                  </div>
-                </div>
-                <Button onClick={handleSendTestEmail} disabled={isSendingTestEmail} variant="outline" size="sm">
-                  <Mail className="h-4 w-4 mr-2" />
-                  {isSendingTestEmail ? "Sending..." : "Send Test"}
-                </Button>
-              </div>
-
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Send className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium">Monthly Summary</p>
-                    <p className="text-sm text-muted-foreground">
-                      AI-generated financial summary {!isPro && "(Pro feature)"}
-                    </p>
-                  </div>
-                </div>
-                <Button 
-                  onClick={handleSendSummary} 
-                  disabled={isSendingSummary || !isPro}
-                  variant="outline" 
-                  size="sm"
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  {isSendingSummary ? "Sending..." : "Send Summary"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Data Tab - Export/Import with Enhanced Display */}
+        {/* Data Tab */}
         <TabsContent value="data" className="space-y-6">
-          {/* Export Card */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -994,7 +1479,6 @@ const handleExport = async () => {
             </CardContent>
           </Card>
 
-          {/* Import Card with Enhanced Result Display */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -1054,7 +1538,6 @@ const handleExport = async () => {
                               {importResult.message}
                             </p>
                             
-                            {/* Detailed Import Stats */}
                             {importResult.stats && importResult.stats.imported && (
                               <div className="mt-4">
                                 <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
@@ -1171,26 +1654,6 @@ const handleExport = async () => {
                   )}
                 </DialogContent>
               </Dialog>
-
-              {/* Data Statistics Card */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-                <div className="bg-muted/30 rounded-lg p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Transactions</p>
-                  <p className="text-xl font-bold">{transactions?.length || 0}</p>
-                </div>
-                <div className="bg-muted/30 rounded-lg p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Accounts</p>
-                  <p className="text-xl font-bold">{userData?.accounts?.length || 0}</p>
-                </div>
-                <div className="bg-muted/30 rounded-lg p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Budgets</p>
-                  <p className="text-xl font-bold">{budgets?.length || 0}</p>
-                </div>
-                <div className="bg-muted/30 rounded-lg p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Goals</p>
-                  <p className="text-xl font-bold">{goals?.length || 0}</p>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1200,3 +1663,6 @@ const handleExport = async () => {
     </div>
   );
 }
+
+// Need to import Home icon
+import { Home } from "lucide-react";

@@ -1,7 +1,8 @@
 {
+  "/privacy/page": "app/privacy/page.js",
   "/login/page": "app/login/page.js",
-  "/dashboard/upgrade/page": "app/dashboard/upgrade/page.js",
-  "/dashboard/transactions/page": "app/dashboard/transactions/page.js",
+  "/terms/page": "app/terms/page.js",
+  "/signup/page": "app/signup/page.js",
   "/dashboard/page": "app/dashboard/page.js",
   "/dashboard/profile/page": "app/dashboard/profile/page.js"
 }

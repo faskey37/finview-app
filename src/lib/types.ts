@@ -56,6 +56,20 @@ export type Account = {
 };
 
 export type UserData = {
+  bio: string;
+  country: string;
+  city: string;
+  age: any;
+  occupation: string;
+  phone: string;
+  incomeRange: string;
+  experienceLevel: string;
+  hasEmergencyFund: boolean;
+  monthlySavings: any;
+  financialGoals: any[];
+  anonymousDataSharing: boolean;
+  emailVerified: any;
+  preferredCurrency: string;
   accounts: any;
   uid: string;
   email: string;
@@ -76,6 +90,23 @@ export type UserData = {
   roundUpForClimate?: boolean;
   ecoPoints?: number;
   completedChallenges?: { [date: string]: boolean };
+  
+  // Nested subscription object for PRO plan (app subscription)
+  proSubscription?: ProSubscriptionInfo;
+};
+
+// Rename this to avoid conflict with the existing Subscription type
+export type ProSubscriptionInfo = {
+  plan: 'monthly' | 'yearly';
+  amount: number;           // Amount in INR
+  startDate: string;        // ISO date string
+  endDate: string;          // ISO date string
+  status: 'active' | 'cancelled' | 'expired' | 'past_due';
+  autoRenew: boolean;
+  paymentMethod?: string;
+  cancelledAt?: string;
+  paymentId?: string;
+  nextBillingDate?: string;
 };
 
 export type Investment = {
@@ -135,6 +166,7 @@ export type Footprint = {
   co2: number;
 };
 
+// This is for tracking user's external subscriptions (Netflix, Spotify, etc.)
 export type Subscription = {
   id: string;
   name: string;

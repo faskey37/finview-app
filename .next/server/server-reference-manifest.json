@@ -1,5 +1,16 @@
 {
   "node": {
+    "4023fa6012638b22879a1c7ef2fd044a75b5c56937": {
+      "workers": {
+        "app/dashboard/eco/page": {
+          "moduleId": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22E%3A%5C%5Cfinview-app%5C%5Csrc%5C%5Cai%5C%5Cflows%5C%5Cgenerate-carbon.footprint.ts%22%2C%5B%5B%224023fa6012638b22879a1c7ef2fd044a75b5c56937%22%2C%22generateCarbonFootprint%22%5D%5D%5D%5D&__client_imported__=true!",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/dashboard/eco/page": "action-browser"
+      }
+    },
     "40bdb8fc4b3cef7128ff804a821ac81b1343c1f5ff": {
       "workers": {
         "app/dashboard/profile/page": {

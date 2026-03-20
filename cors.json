@@ -1,0 +1,14 @@
+[
+  {
+    "origin": ["http://localhost:3000", "https://yourdomain.com"],
+    "method": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": [
+      "Content-Type",
+      "Authorization",
+      "Content-Length",
+      "X-Requested-With",
+      "Access-Control-Allow-Origin"
+    ]
+  }
+]

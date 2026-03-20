@@ -54,15 +54,24 @@ const popularArticles = [
   { title: "Enabling two-factor authentication", views: "843", href: "#" },
 ];
 
-// Contact options
+// Contact options with Gmail links
 const contactOptions = [
   {
     method: "Email Support",
     description: "Get a response within 24 hours",
     icon: Mail,
     action: "ecovest.help@gmail.com",
-    href: "mailto:ecovest.help@gmail.com",
+    href: "mailto:ecovest.help@gmail.com?subject=Help%20Request&body=Hello,%0A%0AI%20need%20help%20with...%0A%0AMy%20account%20email:%20%0A%0AThank%20you.",
     responseTime: "24h",
+  },
+  {
+    method: "Gmail",
+    description: "Open in Gmail",
+    icon: Mail,
+    action: "Open Gmail",
+    href: "https://mail.google.com/mail/?view=cm&fs=1&to=ecovest.help@gmail.com&su=Help%20Request&body=Hello%2C%0A%0AI%20need%20help%20with...%0A%0AMy%20account%20email%3A%20%0A%0AThank%20you.",
+    responseTime: "24h",
+    external: true,
   },
   {
     method: "Live Chat",
@@ -87,6 +96,7 @@ const contactOptions = [
     action: "@EcoVestHelp",
     href: "https://twitter.com/ecovesthelp",
     responseTime: "4h",
+    external: true,
   },
 ];
 
@@ -114,11 +124,37 @@ const faqItems = [
   },
 ];
 
+// Email templates for quick actions
+const emailTemplates = [
+  {
+    subject: "Data Deletion Request",
+    body: "Hello,%0A%0AI would like to request deletion of my personal data.%0A%0AMy account email: [your-email]%0A%0AThank you."
+  },
+  {
+    subject: "Account Issue",
+    body: "Hello,%0A%0AI'm experiencing an issue with my account.%0A%0AIssue description: %0A%0AMy email: [your-email]%0A%0AThank you."
+  },
+  {
+    subject: "Billing Question",
+    body: "Hello,%0A%0AI have a question about my billing.%0A%0ADetails: %0A%0AMy account email: [your-email]%0A%0AThank you."
+  },
+  {
+    subject: "Feature Request",
+    body: "Hello,%0A%0AI'd like to suggest a new feature.%0A%0AFeature idea: %0A%0AWhy it would be helpful: %0A%0AThank you for considering!"
+  }
+];
+
 export default function HelpPage() {
   const { isPro } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [helpfulFeedback, setHelpfulFeedback] = useState<Record<string, boolean>>({});
+
+  const openGmailWithTemplate = (subject: string, body: string) => {
+    const encodedSubject = encodeURIComponent(subject);
+    const encodedBody = encodeURIComponent(body);
+    window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=ecovest.help@gmail.com&su=${encodedSubject}&body=${encodedBody}`, '_blank');
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -331,19 +367,52 @@ export default function HelpPage() {
           </div>
         </div>
 
-        {/* Contact Options */}
+        {/* Email Templates Section */}
         <div className="mt-12">
+          <div className="text-center mb-6">
+            <h2 className="text-xl font-semibold mb-2">Quick email templates</h2>
+            <p className="text-muted-foreground">Choose a template to get started</p>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            {emailTemplates.map((template, index) => (
+              <Card 
+                key={index}
+                className="cursor-pointer hover:shadow-md transition-all hover:border-primary/50"
+                onClick={() => openGmailWithTemplate(template.subject, template.body)}
+              >
+                <CardContent className="p-4 text-center">
+                  <div className="p-2 rounded-full bg-primary/10 w-fit mx-auto mb-3">
+                    <Mail className="h-4 w-4 text-primary" />
+                  </div>
+                  <h3 className="font-medium text-sm mb-1">{template.subject}</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Click to open in Gmail
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Contact Options */}
+        <div className="mt-8">
           <div className="text-center mb-8">
             <h2 className="text-xl font-semibold mb-2">Still need help?</h2>
             <p className="text-muted-foreground">Choose the best way to reach us</p>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {contactOptions.map((option) => {
               const Icon = option.icon;
               return (
-                <Link key={option.method} href={option.href}>
-                  <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                <Link 
+                  key={option.method} 
+                  href={option.href}
+                  target={option.external ? "_blank" : undefined}
+                  rel={option.external ? "noopener noreferrer" : undefined}
+                >
+                  <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
                     <CardContent className="p-4 text-center">
                       <div className="p-2 rounded-full bg-primary/10 w-fit mx-auto mb-3">
                         <Icon className="h-4 w-4 text-primary" />
@@ -354,7 +423,7 @@ export default function HelpPage() {
                       </p>
                       <div className="flex items-center justify-center gap-1 text-xs text-primary">
                         <span>{option.action}</span>
-                        <ExternalLink className="h-3 w-3" />
+                        {option.external && <ExternalLink className="h-3 w-3" />}
                       </div>
                       <Badge variant="outline" className="mt-2 text-[10px] px-1">
                         {option.responseTime} response
@@ -371,7 +440,7 @@ export default function HelpPage() {
         {isPro && (
           <div className="mt-8">
             <Card className="bg-primary/5 border-primary/20">
-              <CardContent className="p-4 flex items-center justify-between">
+              <CardContent className="p-4 flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-full bg-primary">
                     <Headphones className="h-4 w-4 text-white" />
@@ -383,8 +452,13 @@ export default function HelpPage() {
                     </p>
                   </div>
                 </div>
-                <Button size="sm" className="bg-primary hover:bg-primary/90">
-                  Contact Support
+                <Button 
+                  size="sm" 
+                  className="bg-primary hover:bg-primary/90"
+                  onClick={() => window.open('https://mail.google.com/mail/?view=cm&fs=1&to=ecovest.help@gmail.com&su=Priority%20Support%20Request%20(Pro%20Member)&body=Hello%2C%0A%0AI%20am%20a%20Pro%20member%20and%20need%20priority%20assistance.%0A%0AIssue%3A%20%0A%0AMy%20account%20email%3A%20%0A%0AThank%20you.', '_blank')}
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  Contact Priority Support
                 </Button>
               </CardContent>
             </Card>

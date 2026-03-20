@@ -10,10 +10,13 @@ const firebaseConfig = {
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
-
+console.log("🔧 Firebase config loaded:", firebaseConfig);
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
 const auth = getAuth(app);
+console.log("✅ Firebase initialized:", app.name);
+console.log("✅ Firestore instance created:", db);
+console.log("✅ Auth instance created:", auth);
 
 export { app, db, auth };

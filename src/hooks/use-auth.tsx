@@ -114,7 +114,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                                     goalMilestones: true,
                                 }
                             },
-                            accounts: undefined
+                            accounts: undefined,
+                            preferredCurrency: ''
                         };
                         await setDoc(userDocRef, newUser);
                         setUserData(newUser);
