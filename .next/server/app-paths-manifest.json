@@ -1,8 +1,6 @@
 {
-  "/privacy/page": "app/privacy/page.js",
-  "/login/page": "app/login/page.js",
-  "/terms/page": "app/terms/page.js",
-  "/signup/page": "app/signup/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/dashboard/profile/page": "app/dashboard/profile/page.js"
+  "/_not-found/page": "app/_not-found/page.js",
+  "/icon.png/route": "app/icon.png/route.js",
+  "/page": "app/page.js",
+  "/dashboard/page": "app/dashboard/page.js"
 }
