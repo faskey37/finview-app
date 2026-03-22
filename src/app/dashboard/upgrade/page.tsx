@@ -34,7 +34,10 @@ import {
   Gem,
   Percent,
   Award,
-  Mail
+  Mail,
+  Receipt,
+  Ban,
+  AlertTriangle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -50,6 +53,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -462,8 +475,624 @@ const proFeatures = [
   },
 ];
 
+// Subscription Management Component for Pro Users
+function SubscriptionManagement() {
+  const { userData, updateUserData, isPro } = useAuth();
+  const { currency } = useCurrency();
+  const { toast } = useToast();
+  const router = useRouter();
+  const [isCancelling, setIsCancelling] = React.useState(false);
+  const [showCancelDialog, setShowCancelDialog] = React.useState(false);
+  const [cancelReason, setCancelReason] = React.useState("");
+  const [cancelFeedback, setCancelFeedback] = React.useState("");
+  const [isUpgrading, setIsUpgrading] = React.useState(false);
+  const [scriptLoaded, setScriptLoaded] = React.useState(false);
+  const [showUpgradeDialog, setShowUpgradeDialog] = React.useState(false);
+  const [calculatedAmount, setCalculatedAmount] = React.useState(0);
+  const [proratedDays, setProratedDays] = React.useState(0);
+
+  const subscription = userData?.proSubscription;
+  const planType = subscription?.plan || "monthly";
+  const amount = subscription?.amount || PRICING.MONTHLY;
+  const endDate = subscription?.endDate ? new Date(subscription.endDate) : addMonths(new Date(), 1);
+  const daysRemaining = differenceInDays(endDate, new Date());
+  const startDate = subscription?.startDate ? new Date(subscription.startDate) : new Date();
+
+  const displayAmount = convertPrice(amount, currency as CurrencyCode);
+  const monthlyEquivalent = planType === "yearly" 
+    ? convertPrice(amount / 12, currency as CurrencyCode)
+    : displayAmount;
+
+  // Load Razorpay script
+  React.useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => setScriptLoaded(true);
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
+  // Calculate prorated upgrade amount
+  React.useEffect(() => {
+    if (planType === "monthly") {
+      const daysInMonth = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0).getDate();
+      const dailyRate = PRICING.MONTHLY / daysInMonth;
+      const remainingAmount = dailyRate * daysRemaining;
+      const upgradeAmount = PRICING.YEARLY - remainingAmount;
+      setCalculatedAmount(Math.max(0, upgradeAmount));
+      setProratedDays(daysRemaining);
+    }
+  }, [planType, startDate, daysRemaining]);
+
+  const handleCancelSubscription = async () => {
+    setIsCancelling(true);
+    try {
+      // Create subscription history entry
+      const subscriptionHistory = {
+        previousPlan: planType,
+        previousAmount: amount,
+        action: 'cancelled',
+        timestamp: new Date().toISOString(),
+        reason: cancelReason,
+        feedback: cancelFeedback,
+        daysRemaining: daysRemaining,
+        endDate: endDate.toISOString(),
+      };
+
+      // Get existing history or initialize empty array
+      const existingHistory = subscription?.history || [];
+
+      await updateUserData({
+        isPro: false,
+        proSubscription: {
+          ...subscription,
+          plan: planType,
+          amount: amount,
+          status: 'cancelled',
+          autoRenew: false,
+          cancelledAt: new Date().toISOString(),
+          cancelReason: cancelReason,
+          cancelFeedback: cancelFeedback,
+          history: [...existingHistory, subscriptionHistory],
+        }
+      });
+
+      toast({
+        title: "Subscription Cancelled",
+        description: "Your Pro subscription has been cancelled. You'll be downgraded to Free plan.",
+      });
+
+      setShowCancelDialog(false);
+      router.refresh();
+    } catch (error) {
+      console.error("Cancel subscription error:", error);
+      toast({
+        variant: "destructive",
+        title: "Cancellation Failed",
+        description: "Something went wrong. Please try again or contact support.",
+      });
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const handleUpgradeToYearly = () => {
+    if (!scriptLoaded) {
+      toast({
+        title: "Payment system loading",
+        description: "Please wait a moment and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUpgrading(true);
+    
+    const options = {
+      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      amount: Math.round(calculatedAmount * 100),
+      currency: "INR",
+      name: "EcoVest",
+      description: "Upgrade from Monthly to Yearly Pro",
+      image: "/logo.png",
+      handler: async function(response: any) {
+        try {
+          const now = new Date();
+          const newEndDate = addYears(now, 1);
+          const invoiceId = `UPG-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+          
+          // Create upgrade history entry
+          const upgradeHistory = {
+            previousPlan: 'monthly',
+            previousAmount: PRICING.MONTHLY,
+            newPlan: 'yearly',
+            newAmount: PRICING.YEARLY,
+            action: 'upgraded',
+            timestamp: now.toISOString(),
+            proratedAmount: calculatedAmount,
+            proratedDays: proratedDays,
+            paymentId: response.razorpay_payment_id,
+            invoiceId: invoiceId,
+          };
+
+          const existingHistory = subscription?.history || [];
+          
+          const upgradeData = {
+            isPro: true,
+            proSubscription: {
+              plan: 'yearly' as const,
+              amount: PRICING.YEARLY,
+              startDate: now.toISOString(),
+              endDate: newEndDate.toISOString(),
+              nextBillingDate: newEndDate.toISOString(),
+              status: 'active' as const,
+              autoRenew: true,
+              invoiceId,
+              paymentId: response.razorpay_payment_id,
+              upgradedAt: now.toISOString(),
+              previousPlan: 'monthly',
+              previousAmount: PRICING.MONTHLY,
+              proratedAmount: calculatedAmount,
+              proratedDays: proratedDays,
+              history: [...existingHistory, upgradeHistory],
+            }
+          };
+          
+          await updateUserData(upgradeData);
+          
+          toast({
+            title: "🎉 Upgraded to Yearly!",
+            description: `Successfully upgraded to Yearly Pro. Payment of ${formatPrice(calculatedAmount, currency as CurrencyCode)} was completed!`,
+            duration: 5000,
+          });
+          
+          setShowUpgradeDialog(false);
+          router.refresh();
+        } catch (error) {
+          console.error("Upgrade error:", error);
+          toast({
+            variant: "destructive",
+            title: "Upgrade Failed",
+            description: "Payment was successful but upgrade failed. Please contact support.",
+          });
+        } finally {
+          setIsUpgrading(false);
+        }
+      },
+      prefill: {
+        name: userData?.displayName || "",
+        email: userData?.email || "",
+      },
+      notes: {
+        type: "upgrade",
+        from_plan: "monthly",
+        to_plan: "yearly",
+        prorated_amount: calculatedAmount,
+        remaining_days: proratedDays,
+        user_id: userData?.uid,
+      },
+      theme: {
+        color: "#10b981",
+      },
+      modal: {
+        ondismiss: function() {
+          setIsUpgrading(false);
+          toast({
+            title: "Payment cancelled",
+            description: "You can upgrade anytime.",
+          });
+        },
+      },
+    };
+
+    const razorpay = new (window as any).Razorpay(options);
+    razorpay.open();
+  };
+
+  const handleSwitchToYearly = () => {
+    setShowUpgradeDialog(true);
+  };
+
+  const handleReactivate = async () => {
+    router.push("/dashboard/upgrade?plan=yearly");
+  };
+
+  if (subscription?.status === 'cancelled') {
+    return (
+      <Card className="border-amber-500/20 bg-amber-500/5">
+        <CardContent className="p-6">
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-full bg-amber-500">
+              <AlertTriangle className="h-6 w-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold mb-2">Subscription Cancelled</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Your Pro subscription has been cancelled. You'll have access until {format(endDate, 'MMMM d, yyyy')}.
+              </p>
+              <Button onClick={handleReactivate}>
+                <Sparkles className="h-4 w-4 mr-2" />
+                Reactivate Pro
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Active Subscription Card */}
+      <Card className="bg-gradient-to-r from-primary/10 to-purple-600/10 border-primary/20">
+        <CardContent className="p-6">
+          <div className="flex items-start justify-between flex-wrap gap-4">
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-xl bg-gradient-to-r from-primary to-purple-600">
+                <Crown className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold mb-1 flex items-center gap-2 flex-wrap">
+                  Pro Member
+                  <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
+                    {planType === "yearly" ? "Yearly Plan" : "Monthly Plan"}
+                  </Badge>
+                  {daysRemaining < 7 && daysRemaining > 0 && (
+                    <Badge variant="destructive" className="text-xs">
+                      {daysRemaining} days remaining
+                    </Badge>
+                  )}
+                </h3>
+                <p className="text-sm text-muted-foreground mb-2">
+                  You have access to all premium features
+                </p>
+                <div className="flex items-center gap-4 text-sm flex-wrap">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span>Next billing: {format(endDate, 'MMM d, yyyy')}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Receipt className="h-4 w-4 text-muted-foreground" />
+                    <span>
+                      {formatPrice(displayAmount, currency as CurrencyCode)}
+                      {planType === "yearly" ? "/year" : "/month"}
+                    </span>
+                  </div>
+                  {planType === "yearly" && (
+                    <div className="flex items-center gap-1">
+                      <TrendingUp className="h-4 w-4 text-green-500" />
+                      <span className="text-green-600">
+                        Saves {formatPrice(monthlyEquivalent, currency as CurrencyCode)}/month
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              {planType === "monthly" && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleSwitchToYearly}
+                  className="border-primary/50 text-primary hover:bg-primary/10"
+                >
+                  <RefreshCcw className="h-4 w-4 mr-2" />
+                  Switch to Yearly
+                </Button>
+              )}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="border-destructive/50 text-destructive hover:bg-destructive/10"
+                onClick={() => setShowCancelDialog(true)}
+              >
+                <Ban className="h-4 w-4 mr-2" />
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Upgrade to Yearly Dialog */}
+      <AlertDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Gem className="h-5 w-5 text-primary" />
+              Switch to Yearly Plan
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Upgrade to yearly and save more on your subscription!
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* Current Plan Info */}
+            <div className="bg-muted/30 rounded-lg p-4">
+              <p className="text-sm font-medium mb-2">Current Plan (Monthly)</p>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-muted-foreground">Remaining days</span>
+                <span className="text-sm font-medium">{proratedDays} days</span>
+              </div>
+              <div className="flex justify-between items-center mt-1">
+                <span className="text-xs text-muted-foreground">Credit value</span>
+                <span className="text-sm font-medium text-green-600">
+                  {formatPrice((PRICING.MONTHLY / 30) * proratedDays, currency as CurrencyCode)}
+                </span>
+              </div>
+            </div>
+
+            {/* Upgrade Benefits */}
+            <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Percent className="h-4 w-4 text-green-500" />
+                <span className="text-sm font-medium text-green-700 dark:text-green-300">Upgrade Benefits</span>
+              </div>
+              <ul className="space-y-1 text-xs text-green-600 dark:text-green-400">
+                <li>• Save {savingsPercentage}% compared to monthly</li>
+                <li>• Lock in price for 12 months</li>
+                <li>• Exclusive yearly benefits</li>
+                <li>• No price hikes for a year</li>
+              </ul>
+            </div>
+
+            {/* Prorated Calculation */}
+            <div className="border rounded-lg p-4">
+              <p className="text-sm font-medium mb-3">Upgrade Calculation</p>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Yearly plan price</span>
+                  <span>{formatPrice(PRICING.YEARLY, currency as CurrencyCode)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Credit from remaining days</span>
+                  <span className="text-green-600">
+                    - {formatPrice((PRICING.MONTHLY / 30) * proratedDays, currency as CurrencyCode)}
+                  </span>
+                </div>
+                <div className="border-t pt-2 mt-2">
+                  <div className="flex justify-between font-semibold">
+                    <span>Amount to pay today</span>
+                    <span className="text-primary">
+                      {formatPrice(calculatedAmount, currency as CurrencyCode)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Your yearly plan will start today and renew on {format(addYears(new Date(), 1), 'MMMM d, yyyy')}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleUpgradeToYearly}
+              className="bg-primary hover:bg-primary/90"
+              disabled={isUpgrading || !scriptLoaded}
+            >
+              {isUpgrading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : !scriptLoaded ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Loading Payment...
+                </>
+              ) : (
+                <>
+                  <Wallet className="mr-2 h-4 w-4" />
+                  Pay {formatPrice(calculatedAmount, currency as CurrencyCode)}
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Cancel Confirmation Dialog */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              Cancel Pro Subscription?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              You'll lose access to all Pro features immediately. No further charges will be made.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Why are you cancelling? (Optional)</Label>
+              <RadioGroup value={cancelReason} onValueChange={setCancelReason}>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="expensive" id="expensive" />
+                  <Label htmlFor="expensive">Too expensive</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="not-using" id="not-using" />
+                  <Label htmlFor="not-using">Not using enough</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="missing-features" id="missing-features" />
+                  <Label htmlFor="missing-features">Missing features I need</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="technical" id="technical" />
+                  <Label htmlFor="technical">Technical issues</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="other" id="other" />
+                  <Label htmlFor="other">Other reason</Label>
+                </div>
+              </RadioGroup>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Any feedback? (Optional)</Label>
+              <Textarea
+                placeholder="Tell us how we can improve..."
+                value={cancelFeedback}
+                onChange={(e) => setCancelFeedback(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Pro</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleCancelSubscription}
+              className="bg-destructive hover:bg-destructive/90"
+              disabled={isCancelling}
+            >
+              {isCancelling ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Cancelling...
+                </>
+              ) : (
+                'Yes, Cancel Subscription'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Subscription Details */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Subscription Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Plan</span>
+              <span className="text-sm font-medium capitalize">{planType} Pro</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Amount</span>
+              <span className="text-sm font-medium">
+                {formatPrice(displayAmount, currency as CurrencyCode)}
+                {planType === "yearly" ? "/year" : "/month"}
+              </span>
+            </div>
+            {planType === "yearly" && (
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Monthly Equivalent</span>
+                <span className="text-sm font-medium text-green-600">
+                  {formatPrice(monthlyEquivalent, currency as CurrencyCode)}/month
+                </span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Auto-renewal</span>
+              <Badge className={subscription?.autoRenew !== false ? "bg-green-500/10 text-green-600" : "bg-yellow-500/10 text-yellow-600"}>
+                {subscription?.autoRenew !== false ? "On" : "Off"}
+              </Badge>
+            </div>
+            <div className="flex justify-between pt-2 border-t">
+              <span className="text-sm text-muted-foreground">Base Price (INR)</span>
+              <span className="text-sm font-medium">₹{amount}</span>
+            </div>
+            {subscription?.upgradedAt && (
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Last upgraded</span>
+                <span>{format(new Date(subscription.upgradedAt), 'MMM d, yyyy')}</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Subscription History</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {subscription?.history && subscription.history.length > 0 ? (
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {subscription.history.slice().reverse().map((item: any, idx: number) => (
+                  <div key={idx} className="text-xs border-l-2 border-primary/30 pl-3 py-1">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-[10px]">
+                        {item.action === 'upgraded' ? '⬆️ Upgraded' : '❌ Cancelled'}
+                      </Badge>
+                      <span className="text-muted-foreground">{format(new Date(item.timestamp), 'MMM d, yyyy')}</span>
+                    </div>
+                    {item.action === 'upgraded' && (
+                      <p className="text-muted-foreground mt-1">
+                        {item.previousPlan} → {item.newPlan} (Paid {formatPrice(item.proratedAmount, currency as CurrencyCode)})
+                      </p>
+                    )}
+                    {item.action === 'cancelled' && (
+                      <p className="text-muted-foreground mt-1">
+                        {item.reason ? `Reason: ${item.reason}` : 'Cancelled'}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">No subscription history yet</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Need Help Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Need Help?</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-3 rounded-lg bg-accent/20">
+            <div className="flex items-start gap-3">
+              <HelpCircle className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium mb-1">Have questions about your subscription?</p>
+                <p className="text-xs text-muted-foreground">
+                  Contact our support team for any billing or feature questions.
+                </p>
+              </div>
+            </div>
+            <Button variant="link" className="text-primary" asChild>
+              <a href="mailto:ecovest.help@gmail.com?subject=Subscription Question">
+                Contact Support
+              </a>
+            </Button>
+          </div>
+          
+          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+            <div className="flex items-start gap-3">
+              <Receipt className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium mb-1">View Invoices</p>
+                <p className="text-xs text-muted-foreground">
+                  Download your billing history and receipts
+                </p>
+              </div>
+            </div>
+            <Button variant="ghost" size="sm" disabled>
+              Coming Soon
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function UpgradePage() {
-  const { userData, updateUserData, loading } = useAuth();
+  const { userData, updateUserData, loading, isPro } = useAuth();
   const { currency } = useCurrency();
   const router = useRouter();
   const { toast } = useToast();
@@ -504,7 +1133,6 @@ export default function UpgradePage() {
   ) => {
     setIsSendingEmail(true);
     try {
-      // Send welcome email
       const welcomeResponse = await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -525,7 +1153,6 @@ export default function UpgradePage() {
         console.error('Failed to send welcome email');
       }
 
-      // Send invoice email
       const invoiceResponse = await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -544,7 +1171,6 @@ export default function UpgradePage() {
         console.error('Failed to send invoice email');
       }
 
-      // Log success
       console.log('Confirmation emails sent successfully');
     } catch (error) {
       console.error('Error sending confirmation emails:', error);
@@ -561,8 +1187,16 @@ export default function UpgradePage() {
         ? addYears(now, 1)
         : addMonths(now, 1);
       
-      // Generate invoice ID
       const invoiceId = `INV-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+      
+      // Create initial subscription history
+      const subscriptionHistory = [{
+        action: 'created',
+        plan: selectedPlan,
+        amount: selectedPlan === "yearly" ? yearlyPriceINR : monthlyPriceINR,
+        timestamp: now.toISOString(),
+        invoiceId: invoiceId,
+      }];
       
       const subscriptionData = {
         isPro: true,
@@ -575,18 +1209,17 @@ export default function UpgradePage() {
           status: 'active' as const,
           autoRenew: true,
           invoiceId,
+          createdAt: now.toISOString(),
+          history: subscriptionHistory,
         }
       };
       
-      // Update user data in Firestore
       await updateUserData(subscriptionData);
       
-      // Send confirmation emails in the background
       const userName = userData?.displayName || userData?.email?.split('@')[0] || 'Valued Customer';
       const userEmail = userData?.email;
       
       if (userEmail) {
-        // Don't await this - let it run in the background
         sendConfirmationEmails(
           userEmail,
           userName,
@@ -604,7 +1237,6 @@ export default function UpgradePage() {
         duration: 5000,
       });
       
-      // Redirect to dashboard
       setTimeout(() => {
         router.push("/dashboard");
       }, 2000);
@@ -632,7 +1264,8 @@ export default function UpgradePage() {
     );
   }
 
-  if (userData?.isPro) {
+  // If user is Pro, show subscription management
+  if (isPro) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-background via-background to-secondary/5 py-16 px-4 sm:py-20">
         <div className="max-w-4xl mx-auto space-y-8">
@@ -647,26 +1280,22 @@ export default function UpgradePage() {
             
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
               <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                You're Already a Pro Member!
+                Manage Your Subscription
               </span>
             </h1>
             
             <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
-              You already have access to all premium features. Head to your dashboard to start using them!
+              View and manage your Pro membership details. All prices shown in {currency} ({currencyName}).
             </p>
-
-            <div className="flex gap-4 justify-center mt-8">
-              <Button size="lg" onClick={() => router.push("/dashboard")}>
-                Go to Dashboard
-                <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
           </div>
+
+          <SubscriptionManagement />
         </div>
       </div>
     );
   }
 
+  // Original upgrade page for non-Pro users
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-secondary/5 py-16 px-4 sm:py-20">
       <div className="max-w-4xl mx-auto space-y-16">
@@ -773,7 +1402,7 @@ export default function UpgradePage() {
               </TabsTrigger>
             </TabsList>
 
-            {/* Monthly Plan */}
+            {/* Monthly Plan Content */}
             <TabsContent value="monthly">
               <Card className="relative overflow-hidden border-2 border-border/50 bg-card shadow-2xl">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 dark:from-primary/10 dark:via-transparent dark:to-accent/10" />
@@ -913,10 +1542,9 @@ export default function UpgradePage() {
               </Card>
             </TabsContent>
 
-            {/* Yearly Plan */}
+            {/* Yearly Plan Content */}
             <TabsContent value="yearly">
               <Card className="relative overflow-hidden border-2 border-primary/30 bg-card shadow-2xl scale-105">
-                {/* Popular Badge */}
                 <div className="absolute top-6 right-0">
                   <Badge className="rounded-l-full rounded-r-none px-4 py-2 bg-primary text-primary-foreground shadow-lg flex items-center gap-1">
                     <Award className="h-4 w-4" />
@@ -924,7 +1552,6 @@ export default function UpgradePage() {
                   </Badge>
                 </div>
 
-                {/* Savings Badge */}
                 <div className="absolute top-6 left-6 flex gap-2">
                   <Badge variant="outline" className="border-primary/20 bg-primary/5">
                     <Gem className="h-3 w-3 mr-1 text-primary" />
@@ -1036,7 +1663,6 @@ export default function UpgradePage() {
                     </div>
                   </div>
 
-                  {/* Yearly Plan Exclusive Benefits */}
                   <div className="bg-gradient-to-r from-primary/10 to-purple-600/10 p-4 rounded-lg">
                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-1">
                       <Award className="h-4 w-4 text-primary" />

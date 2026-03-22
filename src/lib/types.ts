@@ -97,6 +97,8 @@ export type UserData = {
 
 // Rename this to avoid conflict with the existing Subscription type
 export type ProSubscriptionInfo = {
+  history: any[];
+  upgradedAt: any;
   plan: 'monthly' | 'yearly';
   amount: number;           // Amount in INR
   startDate: string;        // ISO date string
