@@ -6,7 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { CurrencyProvider } from "@/hooks/use-currency";
 import { Inter } from "next/font/google";
 import { PWAInstallPrompt } from '@/components/pwa-install-prompt';
-
+import { TawkChat } from '@/components/twak-chat';
 const inter = Inter({
   subsets: ["latin"],
   display: "swap",
@@ -103,6 +103,7 @@ export default function RootLayout({
             <CurrencyProvider>
               {children}
               <Toaster />
+              <TawkChat />
             </CurrencyProvider>
           </AuthProvider>
         </ThemeProvider>

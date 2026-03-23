@@ -635,3 +635,24 @@
 .animate-pulse-slow {
   animation: pulse-slow 2s ease-in-out infinite;
 }
+/* Fix Tawk chat z-index */
+.tawk-min-container,
+.tawk-button-circle,
+.tawk-bubble-container,
+.tawk-chat-widget,
+.tawk-frame {
+  z-index: 9999 !important;
+}
+
+/* If you want it lower than your loader, use a lower z-index */
+.tawk-min-container,
+.tawk-button-circle,
+.tawk-bubble-container,
+.tawk-chat-widget {
+  z-index: 40 !important;
+}
+
+/* Your loader should have a higher z-index */
+.loader-overlay {
+  z-index: 100 !important;
+}
