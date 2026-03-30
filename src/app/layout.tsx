@@ -5,8 +5,8 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { ThemeProvider } from "@/components/theme-provider";
 import { CurrencyProvider } from "@/hooks/use-currency";
 import { Inter } from "next/font/google";
-import { PWAInstallPrompt } from '@/components/pwa-install-prompt';
-import { TawkChat } from '@/components/twak-chat';
+import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
+import { ChatSidebar } from "@/components/chat-sidebar";
 const inter = Inter({
   subsets: ["latin"],
   display: "swap",
@@ -75,20 +75,37 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
-        
+
         {/* Favicons */}
         <link rel="icon" href="/icon.png" />
-        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="16x16"
+          href="/favicon-16x16.png"
+        />
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="32x32"
+          href="/favicon-32x32.png"
+        />
+        <link
+          rel="apple-touch-icon"
+          sizes="180x180"
+          href="/apple-touch-icon.png"
+        />
         <link rel="manifest" href="/manifest.json" />
-        
+
         <meta name="theme-color" content="#0f172a" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="EcoVest" />
         <meta name="application-name" content="EcoVest" />
-        <meta name="description" content="Smart financial management with AI insights" />
+        <meta
+          name="description"
+          content="Smart financial management with AI insights"
+        />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
@@ -103,7 +120,7 @@ export default function RootLayout({
             <CurrencyProvider>
               {children}
               <Toaster />
-              <TawkChat />
+               <ChatSidebar />
             </CurrencyProvider>
           </AuthProvider>
         </ThemeProvider>

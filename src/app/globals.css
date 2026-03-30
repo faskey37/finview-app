@@ -655,4 +655,28 @@
 /* Your loader should have a higher z-index */
 .loader-overlay {
   z-index: 100 !important;
+}/* Hide default Tawk floating widget */
+.tawk-min-container,
+.tawk-button-circle,
+.tawk-bubble-container {
+  display: none !important;
+}
+
+/* Sidebar chat container */
+#tawk-chat-container {
+  background: transparent;
+}
+
+/* Style the chat inside sidebar */
+#tawk-chat-container iframe {
+  height: 100% !important;
+  width: 100% !important;
+  border: none !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .fixed.right-0 {
+    width: 100% !important;
+  }
 }
